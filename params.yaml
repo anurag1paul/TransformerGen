@@ -4,7 +4,9 @@ alpha: 0.9
 batch_size: 8
 channels: 3
 checkpoint_interval: 1
-dataset_name: # to define
+model:
+checkpoints_dir:
+dataset_name:
 decay_epoch: 100
 img_height: 256
 img_width: 256

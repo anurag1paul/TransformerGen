@@ -7,11 +7,12 @@ from utils import EpochTracker, weights_init_normal
 
 class BaseModel(ABC):
 
-    def __init__(self, device, nets, folder):
+    def __init__(self, device, nets, opts):
         self.device = device
         self.nets = nets
-        self.folder = folder
-        self.epoch_tracker = EpochTracker(folder + "/epoch.txt")
+        self.opts = opts
+        self.folder = opts.checkpoints_dir
+        self.epoch_tracker = EpochTracker(self.folder + "/epoch.txt", self.folder + "/loss.log")
 
     @abstractmethod
     def forward(self):
