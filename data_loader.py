@@ -12,10 +12,10 @@ from torch.utils.data import Dataset
 from data_preprocess import DataPreprocessor
 
 
-class CubDataLoader(Dataset):
+class CubDataset(Dataset):
 
     def __init__(self, device, preprocessor: DataPreprocessor, mode="train"):
-        super(CubDataLoader, self).__init__()
+        super(CubDataset, self).__init__()
         self.device = device
         self.preprocessor = preprocessor
         self.mode = mode
