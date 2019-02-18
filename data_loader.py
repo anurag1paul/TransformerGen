@@ -19,7 +19,7 @@ class CubDataset(Dataset):
         self.device = device
         self.preprocessor = preprocessor
         self.mode = mode
-
+        self.max_caption_size = 50
         self.word_to_idx = self.preprocessor.get_word_to_idx()
 
         if mode == "train":
@@ -35,8 +35,9 @@ class CubDataset(Dataset):
             txt_name = '.'.join(name.split('.')[0:-1]) + '.txt'
             txt_path = os.path.join(self.preprocessor.captions_path, txt_name)
             with open(txt_path,  encoding='utf-8') as captions_file:
-                captions = captions_file.read().splitlines()
-                self.img_captions.append(self.padding(self.tokenize(captions)))
+                captions = self.tokenize(captions_file.read().splitlines())
+                padded = self.padding(captions)
+                self.img_captions.append(padded)
         
         self.data_transforms = torchvision.transforms.Compose([
                 torchvision.transforms.Resize([256, 256]),
@@ -48,7 +49,7 @@ class CubDataset(Dataset):
         return len(self.img_file_names)
 
     def load_img(self, image_name):
-        image = Image.open(image_name)
+        image = Image.open(self.preprocessor.data_path + image_name)
         image = self.data_transforms(image).float()
         image = torch.autograd.Variable(image, requires_grad=False)
         return image.to(self.device)
@@ -61,13 +62,16 @@ class CubDataset(Dataset):
         
     def padding(self, unpadded):
         lens = np.array([len(item) for item in unpadded])
-        mask = lens[:,None] > np.arange(30)
+        mask = lens[:,None] > np.arange(self.max_caption_size)
         out = np.full(mask.shape,0)
+        for i, e in enumerate(unpadded):
+            if len(e) > 30:
+                unpadded[i] = unpadded[i][:self.max_caption_size]
         out[mask] = np.concatenate(unpadded)
         return torch.Tensor(out)
 
     def tokenize(self, captions):
-        tokens = []
+        all_cap_tokens = []
         for cap in captions:
             if len(cap) == 0:
                 continue
@@ -84,8 +88,8 @@ class CubDataset(Dataset):
                 if len(t) > 0:
                     if t in self.word_to_idx:
                         tokens_new.append(self.word_to_idx[t])
-            tokens.append(tokens_new)
-        return tokens
+            all_cap_tokens.append(tokens_new)
+        return all_cap_tokens
 
     def __getitem__(self, idx):
         image = self.load_img(self.img_file_names[idx])

@@ -110,8 +110,7 @@ class DataPreprocessor:
 
     def train_test_split(self):
 
-        train_names = self.file_names
-        names = [train_names[i].split('/')[-1] for i in range(len(train_names))]
+        names = self.file_names
         indexes = np.random.permutation(len(names))
         limit1 = 0.85 * len(names)
         limit2 = 0.9 * len(names)
