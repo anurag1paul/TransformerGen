@@ -1,4 +1,6 @@
 import os
+import shutil
+
 import yaml
 import pickle
 import glob
@@ -56,6 +58,15 @@ def sample_images(data, batches_done, generator, number):
     pass
 
 
+# save checkpoint
+def save_checkpoint(state, is_best, epoch, output_directory):
+    checkpoint_filename = os.path.join(output_directory, 'checkpoint-' + str(epoch) + '.pth.tar')
+    torch.save(state, checkpoint_filename)
+    if is_best:
+        best_filename = os.path.join(output_directory, 'model_best.pth.tar')
+        shutil.copyfile(checkpoint_filename, best_filename)
+
+
 class EpochTracker():
     def __init__(self, in_file, log_file):
         self.epoch = 0
@@ -80,6 +91,7 @@ class EpochTracker():
     def log_losses(self, epoch, train_loss, val_loss):
         self.loss_log.write('{} {} {}\n'.format(epoch, train_loss, val_loss))
         self.loss_log.flush()
+
 
 class EarlyStopping:
     def __init__(self, mode='min', min_delta=0, patience=10, percentage=False):
