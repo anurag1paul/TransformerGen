@@ -93,6 +93,8 @@ class CubDataset(Dataset):
 
     def __getitem__(self, idx):
         image = self.load_img(self.img_file_names[idx])
-        caption = self.img_captions[idx]
+        # select a random sentence
+        idx = np.random.choice(np.arange(len(self.img_captions[idx])))
+        caption = self.img_captions[idx][idx]
 
         return image, caption
