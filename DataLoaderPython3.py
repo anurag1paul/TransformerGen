@@ -232,7 +232,7 @@ loader = DataLoader()
 x, y, class_ids = next(loader.get_data(True))
 
 
-# In[ ]:
+# In[6]:
 
 
 print(x.shape)
@@ -241,14 +241,14 @@ print(y.shape)
 print(class_ids)
 
 
-# In[ ]:
+# In[7]:
 
 
 caption = y[:,np.random.randint(0,10),:]
 caption.shape
 
 
-# In[ ]:
+# In[8]:
 
 
 class RNN_ENCODER(nn.Module):
@@ -296,7 +296,7 @@ class RNN_ENCODER(nn.Module):
         return words_emb, sent_emb
 
 
-# In[ ]:
+# In[9]:
 
 
 model = RNN_ENCODER(ntoken = 5450).to(device)
@@ -305,20 +305,7 @@ word_emb, sent_emb = model.forward(caption)
 print(word_emb.shape, sent_emb.shape)
 
 
-# In[ ]:
-
-
-# Upsale the spatial size by a factor of 2
-def upBlock(in_planes, out_planes):
-    block = nn.Sequential(
-        nn.Upsample(scale_factor=2, mode='nearest'),
-        conv3x3(in_planes, out_planes * 2),
-        nn.BatchNorm2d(out_planes * 2),
-        GLU())
-    return block
-
-
-# In[ ]:
+# In[12]:
 
 
 from torchvision import models
@@ -326,7 +313,7 @@ import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 
 
-# In[ ]:
+# In[13]:
 
 
 class CNN_ENCODER(nn.Module):
