@@ -41,7 +41,7 @@ def create_loader(opts):
     train_set = CubDataset(preprocessor, mode='train')
     val_set = CubDataset(preprocessor, mode='val')
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, pin_memory=True)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=False, pin_memory=True)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=False, pin_memory=True)
     return train_loader, val_loader, ixtoword
 
 
@@ -82,7 +82,7 @@ def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_di
         # words_emb: batch_size x nef x seq_len
         # sent_emb: batch_size x nef
         words_emb, sent_emb = rnn_model(captions, hidden)
-        labels = Variable(torch.LongTensor(range(batch_size)))
+        labels = Variable(torch.LongTensor(range(batch_size))).to(device)
 
         w_loss0, w_loss1, attn_maps = words_loss(words_features, words_emb, labels, class_ids, batch_size)
         w_total_loss0 += w_loss0.data
@@ -152,21 +152,18 @@ def evaluate(dataloader, cnn_model, rnn_model):
         captions = captions.to(device)
         class_ids = class_ids.numpy()
         
-        words_features, sent_code = cnn_model(real_imgs[-1])
+        words_features, sent_code = cnn_model(real_imgs)
         
         batch_size = words_features.size(0)
         hidden = rnn_model.init_hidden(batch_size)
         words_emb, sent_emb = rnn_model(captions, hidden)
-        labels = Variable(torch.LongTensor(range(batch_size)))
+        labels = Variable(torch.LongTensor(range(batch_size))).to(device)
 
         w_loss0, w_loss1, attn = words_loss(words_features, words_emb, labels, class_ids, batch_size)
         w_total_loss += (w_loss0 + w_loss1).data
 
         s_loss0, s_loss1 = sent_loss(sent_code, sent_emb, labels, class_ids, batch_size)
         s_total_loss += (s_loss0 + s_loss1).data
-
-        if step == 50:
-            break
 
     s_cur_loss = s_total_loss.item() / step
     w_cur_loss = w_total_loss.item() / step
@@ -215,13 +212,6 @@ def build_models(dict_size, batch_size, model_file_name):
 
 if __name__ == "__main__":
 
-    manualSeed = 100
-    random.seed(manualSeed)
-    np.random.seed(manualSeed)
-    torch.manual_seed(manualSeed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(manualSeed)
-
     ##########################################################################
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
@@ -257,19 +247,19 @@ if __name__ == "__main__":
                           ixtoword, image_dir)
             print('-' * 89)
             if len(val_loader) > 0:
-                s_loss, w_loss = evaluate(val_loader, image_encoder,
-                                          text_encoder, batch_size)
+                s_loss, w_loss = evaluate(val_loader, image_encoder, text_encoder)
                 print('| end epoch {:3d} | val loss '
-                      '{:5.2f} {:5.2f} | lr {:.5f}|'
-                      .format(epoch, s_loss, w_loss, lr))
+                      '{:5.2f} {:5.2f} |'
+                      .format(epoch, s_loss, w_loss))
             print('-' * 89)
             
             loss_log.write('e:{} st:{} wt:{} sv:{} wv:{}\n'.format(epoch, s_train_loss, 
                                                                    w_train_loss, s_loss, w_loss))
             loss_log.flush()
             
-            if lr > opts.TRAIN.ENCODER_LR/10.:
-                optimizer.param_groups[0]['lr'] *= 0.98
+            if  optimizer.param_groups[0]['lr'] > opts.TRAIN.ENCODER_LR/10.:
+                for g in optimizer.param_groups:
+                    g['lr'] *= 0.98
 
             if (epoch % opts.TRAIN.SNAPSHOT_INTERVAL == 0 or
                 epoch == opts.TRAIN.MAX_EPOCH):
