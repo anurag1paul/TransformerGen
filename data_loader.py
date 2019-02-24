@@ -1,5 +1,6 @@
 import os
 
+import numpy
 import numpy as np
 import torch
 
@@ -94,7 +95,9 @@ class CubDataset(Dataset):
     def __getitem__(self, idx):
         image = self.load_img(self.img_file_names[idx])
         # select a random sentence
-        idx = np.random.choice(np.arange(len(self.img_captions[idx])))
-        caption = self.img_captions[idx][idx]
+        cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
+        caption = self.img_captions[idx][cap_idx].to(self.device)
 
-        return image, caption
+        class_id = torch.Tensor(torch.from_numpy(numpy.array(idx))).to(self.device)
+
+        return image, caption, class_id

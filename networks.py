@@ -1,32 +1,12 @@
+import torch
+
 from torch import nn
 from torchvision import models
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 
-# class ResnetBlock(nn.Module):
+#  taken from https://github.com/taoxugit/AttnGAN/
 
-#     def __init__(self, dim, use_dropout=True):
-#         super(ResnetBlock, self).__init__()
-
-#         conv_block = [nn.ReflectionPad2d(1),
-#                       nn.Conv2d(dim, dim, kernel_size=3, padding=0,
-#                                 bias=nn.InstanceNorm2d),
-#                       nn.BatchNorm2d(dim),
-#                       nn.ReLU(True)]
-
-#         if use_dropout:
-#             conv_block += [nn.Dropout(0.5)]
-
-#         conv_block += [nn.ReflectionPad2d(1),
-#                        nn.Conv2d(dim, dim, kernel_size=3, padding=0,
-#                                  bias=nn.InstanceNorm2d),
-#                        nn.BatchNorm2d(dim)]
-
-#         self.conv_block = nn.Sequential(*conv_block)
-
-#     def forward(self, x):
-#         out = x + self.conv_block(x)
-#         return out
 
 def conv1x1(in_planes, out_planes, bias=False):
     "1x1 convolution with padding"
@@ -37,7 +17,10 @@ def conv3x3(in_planes, out_planes):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=1,padding=1, bias=False)
 
+
 class RNN_ENCODER(nn.Module):
+
+
     def __init__(self, ntoken, ninput=300, drop_prob=0.5,
                  nhidden=128, nlayers=1, bidirectional=True):
         super(RNN_ENCODER, self).__init__()
@@ -62,7 +45,6 @@ class RNN_ENCODER(nn.Module):
                            self.nlayers, batch_first=True,
                            dropout=self.drop_prob,
                            bidirectional=self.bidirectional)
-
 
     def init_hidden(self, batch_size):
         return (torch.zeros(self.nlayers* self.num_directions, batch_size, self.nhidden).cuda(),
@@ -180,12 +162,11 @@ class CNN_ENCODER(nn.Module):
             features = self.emb_features(features)
         return features, cnn_code
     
-model = RNN_ENCODER(ntoken = 5450).to(device)
-model.hidden = model.init_hidden(batch_size)
-word_emb, sent_emb = model.forward(caption)
-# print(word_emb.shape, sent_emb.shape)
-
-image_encoder = CNN_ENCODER(128).to(device)
-img_features, img_sent_code = image_encoder(x)
-    
+# model = RNN_ENCODER(ntoken = 5450).to(device)
+# model.hidden = model.init_hidden(batch_size)
+# word_emb, sent_emb = model.forward(caption)
+# # print(word_emb.shape, sent_emb.shape)
+#
+# image_encoder = CNN_ENCODER(128).to(device)
+# img_features, img_sent_code = image_encoder(x)
     

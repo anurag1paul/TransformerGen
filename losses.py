@@ -53,7 +53,7 @@ def cosine_similarity(x1, x2, dim=1, eps=1e-8):
     return (w12 / (w1 * w2).clamp(min=eps)).squeeze()
 
 
-def words_loss(img_features, words_emb, labels, batch_size, class_ids):
+def words_loss(img_features, words_emb, labels, class_ids, batch_size):
     """
         words_emb(query): batch x nef x seq_len
         img_features(context): batch x nef x 17 x 17

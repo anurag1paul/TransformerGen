@@ -133,6 +133,6 @@ class DataPreprocessor:
         return file_names
 
 
-if __name__ == "__main__":
-    preprocessor = DataPreprocessor(img_name_path, data_path, captions_path)
-    print(len(preprocessor.get_word_to_idx()))
+# if __name__ == "__main__":
+#     preprocessor = DataPreprocessor(img_name_path, data_path, captions_path)
+#     print(len(preprocessor.get_word_to_idx()))
