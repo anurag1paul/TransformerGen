@@ -61,7 +61,7 @@ class DataPreprocessor:
             file_name = name_parts[1]
 
             txt_name = '.'.join(file_name.split('.')[0:-1]) + '.txt'
-            txt_path = os.path.join(captions_path, txt_name)
+            txt_path = os.path.join(self.captions_path, txt_name)
             with open(txt_path, 'r', encoding='utf-8') as txt_file:
                 captions = txt_file.read().splitlines()
 
