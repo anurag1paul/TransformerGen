@@ -2,19 +2,15 @@ import os
 import sys
 import time
 import random
-import pprint
 import datetime
 import dateutil.tz
-import argparse
 import numpy as np
 from PIL import Image
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 
 from data_loader import CubDataset
 from data_preprocess import DataPreprocessor
@@ -45,7 +41,7 @@ def create_loader(opts):
     val_set = CubDataset(device, preprocessor, mode='val')
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.batch_size, shuffle=True, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=False, pin_memory=True)
-    return train_loader, val_loader
+    return train_loader, val_loader, ixtoword
 
 
 def train(dataloader, cnn_model, rnn_model, batch_size, labels, optimizer, epoch, ixtoword, image_dir):
