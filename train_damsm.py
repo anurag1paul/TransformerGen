@@ -45,7 +45,7 @@ def create_loader(opts):
     return train_loader, val_loader, ixtoword
 
 
-def train(dataloader, cnn_model, rnn_model, batch_size, labels, optimizer, epoch, ixtoword, image_dir):
+def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_dir):
     cnn_model.train()
     rnn_model.train()
 
@@ -82,6 +82,7 @@ def train(dataloader, cnn_model, rnn_model, batch_size, labels, optimizer, epoch
         # words_emb: batch_size x nef x seq_len
         # sent_emb: batch_size x nef
         words_emb, sent_emb = rnn_model(captions, hidden)
+        labels = Variable(torch.LongTensor(range(batch_size)))
 
         w_loss0, w_loss1, attn_maps = words_loss(words_features, words_emb, labels, class_ids, batch_size)
         w_total_loss0 += w_loss0.data
@@ -138,7 +139,7 @@ def train(dataloader, cnn_model, rnn_model, batch_size, labels, optimizer, epoch
     return count, s_epoch_loss, w_epoch_loss
 
 
-def evaluate(dataloader, cnn_model, rnn_model, batch_size):
+def evaluate(dataloader, cnn_model, rnn_model):
     cnn_model.eval()
     rnn_model.eval()
 
@@ -156,6 +157,7 @@ def evaluate(dataloader, cnn_model, rnn_model, batch_size):
         batch_size = words_features.size(0)
         hidden = rnn_model.init_hidden(batch_size)
         words_emb, sent_emb = rnn_model(captions, hidden)
+        labels = Variable(torch.LongTensor(range(batch_size)))
 
         w_loss0, w_loss1, attn = words_loss(words_features, words_emb, labels, class_ids, batch_size)
         w_total_loss += (w_loss0 + w_loss1).data
@@ -176,7 +178,6 @@ def build_models(dict_size, batch_size, model_file_name):
     # build model ############################################################
     text_encoder = RNN_ENCODER(dict_size, batch_size=batch_size, nhidden=opts.TEXT.EMBEDDING_DIM)
     image_encoder = CNN_ENCODER(opts.TEXT.EMBEDDING_DIM)
-    labels = Variable(torch.LongTensor(range(batch_size)))
 
     if os.path.exists(model_file_name):
         checkpoint = torch.load(model_file_name)
@@ -208,9 +209,8 @@ def build_models(dict_size, batch_size, model_file_name):
 
     text_encoder = text_encoder.to(device)
     image_encoder = image_encoder.to(device)
-    labels = labels.cuda()
 
-    return text_encoder, image_encoder, labels, start_epoch, optimizer
+    return text_encoder, image_encoder, start_epoch, optimizer
 
 
 if __name__ == "__main__":
@@ -247,14 +247,13 @@ if __name__ == "__main__":
 
     # Train ##############################################################
     model_file_name = os.path.join(model_dir, 'checkpoint-' + str(epoch_tracker.epoch) + '.pth.tar')
-    text_encoder, image_encoder, labels, start_epoch, optimizer = build_models(len(ixtoword), batch_size, model_file_name)
+    text_encoder, image_encoder, start_epoch, optimizer = build_models(len(ixtoword), batch_size, model_file_name)
 
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         for epoch in range(start_epoch, opts.TRAIN.MAX_EPOCH):
             epoch_start_time = time.time()
-            count, s_train_loss, w_train_loss = train(train_loader, image_encoder, text_encoder,
-                          batch_size, labels, optimizer, epoch,
+            count, s_train_loss, w_train_loss = train(train_loader, image_encoder, text_encoder, optimizer, epoch,
                           ixtoword, image_dir)
             print('-' * 89)
             if len(val_loader) > 0:
