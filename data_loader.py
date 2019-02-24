@@ -31,9 +31,12 @@ class CubDataset(Dataset):
             self.img_file_names = self.preprocessor.get_test_files()
 
         self.img_captions = []
-        
+        self.class_ids = []
+
         for name in self.img_file_names:
-            txt_name = '.'.join(name.split('.')[0:-1]) + '.txt'
+            name_parts = name.split('.')
+            self.class_ids.append(int(name_parts[0]))
+            txt_name = '.'.join(name_parts[0:-1]) + '.txt'
             txt_path = os.path.join(self.preprocessor.captions_path, txt_name)
             with open(txt_path,  encoding='utf-8') as captions_file:
                 captions = self.tokenize(captions_file.read().splitlines())
@@ -98,6 +101,6 @@ class CubDataset(Dataset):
         cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
         caption = self.img_captions[idx][cap_idx].to(self.device)
 
-        class_id = torch.Tensor(torch.from_numpy(numpy.array(idx))).to(self.device)
+        class_id = torch.Tensor(torch.from_numpy(numpy.array(self.class_ids[idx]))).to(self.device)
 
         return image, caption, class_id

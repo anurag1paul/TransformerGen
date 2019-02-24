@@ -4,11 +4,6 @@ import pickle
 import numpy as np
 from nltk.tokenize import RegexpTokenizer
 
-captions_path = '../cub_dataset/text_c10'
-img_name_path = '../cub_dataset/images.txt'
-data_path = '../cub_dataset/images/'
-
-
 class DataPreprocessor:
 
     def __init__(self, dataset_name, images_path_file, data_path, captions_path):
