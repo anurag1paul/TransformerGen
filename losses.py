@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 from torch.nn import functional as F
 
@@ -16,7 +17,7 @@ def func_attention(query, context, gamma1):
     # --> batch x sourceL x ndf
     context = context.view(batch_size, -1, sourceL)
     contextT = torch.transpose(context, 1, 2).contiguous()
-
+    
     # Get attention
     # (batch x sourceL x ndf)(batch x ndf x queryL)
     # -->batch x sourceL x queryL
@@ -74,8 +75,9 @@ def words_loss(img_features, words_emb, labels, class_ids, batch_size):
         # -> batch_size x nef x words_num
         word = word.repeat(batch_size, 1, 1)
         # batch x nef x 17*17
-
+       
         context = img_features
+      
         """
             word(query): batch x nef x words_num
             context: batch x nef x 17 x 17
@@ -134,6 +136,7 @@ def sent_loss(cnn_code, rnn_code, labels, class_ids,
               batch_size, eps=1e-8):
     # ### Mask mis-match samples  ###
     # that come from the same class as the real sample ###
+
     masks = []
     if class_ids is not None:
         for i in range(batch_size):

@@ -21,42 +21,41 @@ def conv3x3(in_planes, out_planes):
 class RNN_ENCODER(nn.Module):
 
 
-    def __init__(self, ntoken, ninput=300, drop_prob=0.5,
-                 nhidden=128, nlayers=1, bidirectional=True):
+    def __init__(self, ntoken, batch_size, ninput=300, drop_prob=0.5,
+                 nhidden=128, nlayers=1):
         super(RNN_ENCODER, self).__init__()
         
         self.ntoken = ntoken  # size of the dictionary
         self.ninput = ninput  # size of each embedding vector
         self.drop_prob = drop_prob  # probability of an element to be zeroed
         self.nlayers = nlayers  # Number of recurrent layers
-        self.bidirectional = bidirectional
+        self.bidirectional = True
 
-        if bidirectional:
+        if self.bidirectional:
             self.num_directions = 2
         else:
             self.num_directions = 1
 
         self.nhidden = nhidden // self.num_directions
-
+        
         self.encoder = nn.Embedding(self.ntoken, self.ninput)
         self.drop = nn.Dropout(self.drop_prob)
         
         self.rnn = nn.LSTM(self.ninput, self.nhidden,
                            self.nlayers, batch_first=True,
-                           dropout=self.drop_prob,
                            bidirectional=self.bidirectional)
 
     def init_hidden(self, batch_size):
         return (torch.zeros(self.nlayers* self.num_directions, batch_size, self.nhidden).cuda(),
                 torch.zeros(self.nlayers* self.num_directions, batch_size, self.nhidden).cuda())
 
-    def forward(self, captions):
+    def forward(self, captions, hidden):
     
         emb = self.drop(self.encoder(captions))        
-        output, self.hidden = self.rnn(emb, self.hidden)
+        output, hidden = self.rnn(emb, hidden)
         words_emb = output.transpose(1, 2)
         
-        sent_emb = self.hidden[0].transpose(0, 1).contiguous()
+        sent_emb = hidden[0].transpose(0, 1).contiguous()
         sent_emb = sent_emb.view(-1, self.nhidden * self.num_directions)
         
         return words_emb, sent_emb
@@ -64,9 +63,9 @@ class RNN_ENCODER(nn.Module):
 class CNN_ENCODER(nn.Module):
     def __init__(self, nef):
         super(CNN_ENCODER, self).__init__()
-        self.nef = 128  # define a uniform ranker
+        self.nef = nef  # define a uniform ranker
 
-        model = models.inception_v3().to(device)
+        model = models.inception_v3()
         url = 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth'
         model.load_state_dict(model_zoo.load_url(url))
         for param in model.parameters():

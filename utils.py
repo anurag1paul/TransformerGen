@@ -9,6 +9,9 @@ import torch
 import numpy as np
 from torchvision.utils import save_image
 from matplotlib import pyplot as plt
+from torch import nn
+from PIL import Image, ImageDraw, ImageFont
+import skimage.transform
 
 
 def weights_init_normal(m):
@@ -27,6 +30,11 @@ def get_opts(params_file="config/params.yaml"):
         opts_loaded = yaml.load(stream)
         return opts_loaded
 
+    
+def save_checkpoint(state, is_best, epoch, output_directory):
+    checkpoint_filename = os.path.join(output_directory, 'checkpoint-' + str(epoch) + '.pth.tar')
+    torch.save(state, checkpoint_filename)
+
 
 def load_params(model, new_param):
     for p, new_p in zip(model.parameters(), new_param):
@@ -39,9 +47,8 @@ def copy_G_params(model):
 
 
 def make_dir(file_path):
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
 
 def store_loss_plots(train_losses, val_losses, opts):
     """Saves a plot of the training and validation loss curves.
@@ -70,38 +77,26 @@ def sample_images(data, batches_done, generator, number):
 
 
 # save checkpoint
-def save_checkpoint(state, is_best, epoch, output_directory):
+def save_checkpoint(state, epoch, output_directory):
     checkpoint_filename = os.path.join(output_directory, 'checkpoint-' + str(epoch) + '.pth.tar')
     torch.save(state, checkpoint_filename)
-    if is_best:
-        best_filename = os.path.join(output_directory, 'model_best.pth.tar')
-        shutil.copyfile(checkpoint_filename, best_filename)
 
 
 class EpochTracker():
-    def __init__(self, in_file, log_file):
+    def __init__(self, in_file):
         self.epoch = 0
-        self.iter = 0
         self.in_file = in_file
         self.file_exists = os.path.isfile(in_file)
-        self. loss_log = open(log_file, 'w')
         if self.file_exists:
             with open(in_file, 'r') as f:
-                d = f.read()
-                a, b = d.split(";")
-                self.epoch = int(a)
-                self.iter = int(b)
+                e = f.read()
+                self.epoch = int(e)
 
-    def write(self, epoch, iteration):
+    def write(self, epoch):
         self.epoch = epoch
-        self.iter = iteration
-        data = "{};{}".format(self.epoch, self.iter)
+        data = "{}".format(self.epoch)
         with open(self.in_file, 'w') as f:
             f.write(data)
-
-    def log_losses(self, epoch, train_loss, val_loss):
-        self.loss_log.write('{} {} {}\n'.format(epoch, train_loss, val_loss))
-        self.loss_log.flush()
 
 
 class EarlyStopping:
@@ -174,7 +169,7 @@ def drawCaption(convas, captions, ixtoword, vis_size, off1=2, off2=2):
     img_txt = Image.fromarray(convas)
     # get a font
     # fnt = None  # ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 50)
-    fnt = ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 50)
+#     fnt = ImageFont.truetype('arial.ttf', 50)
     # get a drawing context
     d = ImageDraw.Draw(img_txt)
     sentence_list = []
@@ -185,17 +180,15 @@ def drawCaption(convas, captions, ixtoword, vis_size, off1=2, off2=2):
             if cap[j] == 0:
                 break
             word = ixtoword[cap[j]].encode('ascii', 'ignore').decode('ascii')
-            d.text(((j + off1) * (vis_size + off2), i * FONT_MAX), '%d:%s' % (j, word[:6]),
-                   font=fnt, fill=(255, 255, 255, 255))
+            d.text(((j + off1) * (vis_size + off2), i * FONT_MAX), '%d:%s' % (j, word[:6]), fill=(255, 255, 255, 255))
             sentence.append(word)
         sentence_list.append(sentence)
     return img_txt, sentence_list
 
 
 def build_super_images(real_imgs, captions, ixtoword,
-                       attn_maps, att_sze, lr_imgs=None,
-                       batch_size=cfg.TRAIN.BATCH_SIZE,
-                       max_word_num=cfg.TEXT.WORDS_NUM):
+                       attn_maps, att_sze, lr_imgs,
+                       batch_size, max_word_num):
     nvis = 8
     real_imgs = real_imgs[:nvis]
     if lr_imgs is not None:

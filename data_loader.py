@@ -15,12 +15,11 @@ from data_preprocess import DataPreprocessor
 
 class CubDataset(Dataset):
 
-    def __init__(self, device, preprocessor: DataPreprocessor, mode="train"):
+    def __init__(self, preprocessor: DataPreprocessor, mode="train"):
         super(CubDataset, self).__init__()
-        self.device = device
         self.preprocessor = preprocessor
         self.mode = mode
-        self.max_caption_size = 50
+        self.max_caption_size = 30
         self.word_to_idx = self.preprocessor.get_word_to_idx()
 
         if mode == "train":
@@ -54,9 +53,10 @@ class CubDataset(Dataset):
 
     def load_img(self, image_name):
         image = Image.open(self.preprocessor.data_path + image_name)
+        image = image.convert("RGB")
         image = self.data_transforms(image).float()
         image = torch.autograd.Variable(image, requires_grad=False)
-        return image.to(self.device)
+        return image
     
     def imshow(self, img):
         img = img / 2 + 0.5     # unnormalize
@@ -69,10 +69,10 @@ class CubDataset(Dataset):
         mask = lens[:,None] > np.arange(self.max_caption_size)
         out = np.full(mask.shape,0)
         for i, e in enumerate(unpadded):
-            if len(e) > 30:
+            if len(e) > self.max_caption_size:
                 unpadded[i] = unpadded[i][:self.max_caption_size]
         out[mask] = np.concatenate(unpadded)
-        return torch.Tensor(out)
+        return torch.LongTensor(out)
 
     def tokenize(self, captions):
         all_cap_tokens = []
@@ -99,8 +99,8 @@ class CubDataset(Dataset):
         image = self.load_img(self.img_file_names[idx])
         # select a random sentence
         cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
-        caption = self.img_captions[idx][cap_idx].to(self.device)
+        caption = self.img_captions[idx][cap_idx]
 
-        class_id = torch.Tensor(torch.from_numpy(numpy.array(self.class_ids[idx]))).to(self.device)
+        class_id = numpy.array(self.class_ids[idx])
 
         return image, caption, class_id
