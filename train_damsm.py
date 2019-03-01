@@ -13,7 +13,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 
-from data_loader import CubDataset
+from data_loader import CubDataset, prepare_data
 from data_preprocess import DataPreprocessor
 from losses import words_loss, sent_loss
 from networks import RNN_ENCODER, CNN_ENCODER
@@ -24,9 +24,7 @@ from utils import get_opts, build_super_images, make_dir, save_checkpoint, Epoch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-captions_path = 'dataset/text_c10'
-img_name_path = 'dataset/images.txt'
-data_path = 'dataset/images/'
+data_dir = 'dataset/'
 output_directory = "checkpoints"
 epoch_file = "epoch.txt"
 log_file = "logs.log"
@@ -36,10 +34,10 @@ opts = EasyDict(get_opts("config/damsm_bird.yaml"))
 
 
 def create_loader(opts):
-    preprocessor = DataPreprocessor("cub", img_name_path, data_path, captions_path)
+    preprocessor = DataPreprocessor("cub", data_dir)
     ixtoword = preprocessor.get_idx_to_word()
-    train_set = CubDataset(preprocessor, mode='train')
-    val_set = CubDataset(preprocessor, mode='val')
+    train_set = CubDataset(preprocessor, opts, mode='train')
+    val_set = CubDataset(preprocessor, opts, mode='val')
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=False, pin_memory=True)
     return train_loader, val_loader, ixtoword
@@ -64,15 +62,12 @@ def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_di
         print('step', step)
         optimizer.zero_grad()
 
-        imgs, captions, class_ids = data
-        imgs = imgs.to(device)
-        captions = captions.to(device)
-        class_ids = class_ids.numpy()
+        imgs, captions, class_ids = prepare_data(data, device)
 
         # words_features: batch_size x nef x 17 x 17
         # sent_code: batch_size x nef
         
-        words_features, sent_code = cnn_model(imgs)
+        words_features, sent_code = cnn_model(imgs[-1])
         # --> batch_size x nef x 17*17
 
         batch_size, nef, att_sze = words_features.size(0), words_features.size(1), words_features.size(2)
@@ -128,7 +123,7 @@ def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_di
             
         if step == batch_size-1:
             # attention Maps
-            img_set, _ = build_super_images(imgs.cpu(), captions, ixtoword, 
+            img_set, _ = build_super_images(imgs[-1].cpu(), captions, ixtoword,
                                             attn_maps, att_sze, None, batch_size, max_word_num=18)
             if img_set is not None:
                 im = Image.fromarray(img_set)

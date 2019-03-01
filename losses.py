@@ -84,7 +84,7 @@ def words_loss(img_features, words_emb, labels, class_ids, batch_size):
             weiContext: batch x nef x words_num
             attn: batch x words_num x 17 x 17
         """
-        weiContext, attn = func_attention(word, context,5)
+        weiContext, attn = func_attention(word, context, 4)
 
         att_maps.append(attn[i].unsqueeze(0).contiguous())
         # --> batch_size x words_num x nef

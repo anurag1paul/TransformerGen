@@ -2,14 +2,18 @@ import os
 import pickle
 
 import numpy as np
+import pandas as pd
 from nltk.tokenize import RegexpTokenizer
+from sklearn.model_selection import train_test_split
+
 
 class DataPreprocessor:
 
-    def __init__(self, dataset_name, images_path_file, data_path, captions_path):
-        self.images_path_file = images_path_file
-        self.data_path = data_path
-        self.captions_path = captions_path
+    def __init__(self, dataset_name, data_dir):
+        self.data_dir = data_dir
+        self.images_path_file = os.path.join(data_dir, "images.txt")
+        self.data_path = os.path.join(data_dir, "images")
+        self.captions_path = os.path.join(data_dir, "text_c10")
         self.processed_data = "data/"
 
         # we load the path names of all image files
@@ -105,22 +109,20 @@ class DataPreprocessor:
 
     def train_test_split(self):
 
-        names = self.file_names
-        indexes = np.random.permutation(len(names))
-        limit1 = 0.85 * len(names)
-        limit2 = 0.9 * len(names)
-        train = []
-        test = []
-        val = []
-        for i in range(len(names)):
-            name = names[indexes[i]].split()[1]
-            if i < limit1:
-                train.append(name)
-            elif i < limit2:
-                val.append(name)
-            else:
-                test.append(name)
-        file_names = {"train": train, "val":val, "test": test}
+        class_path = os.path.join(self.data_dir, 'image_class_labels.txt')
+        classes = pd.read_csv(class_path,delim_whitespace=True,
+                                header=None)
+        filepath = os.path.join(self.data_dir, 'images.txt')
+        df_filenames = pd.read_csv(filepath,
+                           delim_whitespace=True, header=None)
+
+        filenames = df_filenames[1].tolist()
+        labels = classes[1].tolist()
+
+        Xtrain, Xtest, ytrain, ytest = train_test_split(filenames, labels, test_size=0.1)
+        Xtrain, Xval, ytrain, yval = train_test_split(Xtrain, ytrain, test_size=0.075)
+
+        file_names = {"train": Xtrain, "val":Xval, "test": Xtest}
 
         with open(self.train_test_split_path, "wb" ) as tt_file:
             pickle.dump(file_names, tt_file)
