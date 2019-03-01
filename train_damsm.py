@@ -43,7 +43,7 @@ def create_loader(opts):
     return train_loader, val_loader, ixtoword
 
 
-def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_dir):
+def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_dir, batch_size):
     cnn_model.train()
     rnn_model.train()
 
@@ -57,6 +57,7 @@ def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_di
     
     s_epoch_loss = 0
     w_epoch_loss = 0
+    num_batches = len(dataloader) // batch_size
 
     for step, data in enumerate(dataloader, 0):
         print('step', step)
@@ -121,7 +122,7 @@ def train(dataloader, cnn_model, rnn_model, optimizer, epoch, ixtoword, image_di
             w_total_loss1 = 0
             start_time = time.time()
             
-        if step == batch_size-1:
+        if step == num_batches-1:
             # attention Maps
             img_set, _ = build_super_images(imgs[-1].cpu(), captions, ixtoword,
                                             attn_maps, att_sze, None, batch_size, max_word_num=18)
@@ -239,7 +240,7 @@ if __name__ == "__main__":
         for epoch in range(start_epoch, opts.TRAIN.MAX_EPOCH):
             epoch_start_time = time.time()
             count, s_train_loss, w_train_loss = train(train_loader, image_encoder, text_encoder, optimizer, epoch,
-                          ixtoword, image_dir)
+                          ixtoword, image_dir, batch_size)
             print('-' * 89)
             if len(val_loader) > 0:
                 s_loss, w_loss = evaluate(val_loader, image_encoder, text_encoder)

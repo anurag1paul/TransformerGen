@@ -31,8 +31,10 @@ def prepare_data(data, device):
 
 
 def get_imgs(img_path, imsize, opts, bbox=None,
-             transform=None, normalize=None):
-
+             transform=None):
+    normalize = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     img = Image.open(img_path).convert('RGB')
     width, height = img.size
 
@@ -53,10 +55,7 @@ def get_imgs(img_path, imsize, opts, bbox=None,
 
     for i in range(opts.TREE.BRANCH_NUM):
         # print(imsize[i])
-        if i < (opts.TREE.BRANCH_NUM - 1):
-            re_img = transforms.Scale(imsize[i])(img)
-        else:
-            re_img = img
+        re_img = transforms.Resize((imsize[i], imsize[i]))(img)
         ret.append(normalize(re_img))
 
     return ret
@@ -164,8 +163,8 @@ class CubDataset(Dataset):
         return filename_bbox, filename_classes
 
     def __getitem__(self, idx):
-        image_name = self.preprocessor.data_path + self.img_file_names[idx]
-        image = get_imgs(image_name, self.filename_bbox[self.img_file_names[idx]], self.opts)
+        image_name = os.path.join(self.preprocessor.data_path, self.img_file_names[idx])
+        image = get_imgs(image_name, self.imsize, self.opts, bbox=self.filename_bbox[self.img_file_names[idx]])
         # select a random sentence
         cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
         caption = self.img_captions[idx][cap_idx]
