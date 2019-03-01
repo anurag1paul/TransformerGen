@@ -143,12 +143,9 @@ def evaluate(dataloader, cnn_model, rnn_model):
     w_total_loss = 0
 
     for step, data in enumerate(dataloader, 0):
-        real_imgs, captions, class_ids = data
-        real_imgs = real_imgs.to(device) 
-        captions = captions.to(device)
-        class_ids = class_ids.numpy()
+        real_imgs, captions, class_ids = prepare_data(data, device)
         
-        words_features, sent_code = cnn_model(real_imgs)
+        words_features, sent_code = cnn_model(real_imgs[-1])
         
         batch_size = words_features.size(0)
         hidden = rnn_model.init_hidden(batch_size)
