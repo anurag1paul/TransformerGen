@@ -12,7 +12,7 @@ class BaseModel(ABC):
         self.nets = nets
         self.opts = opts
         self.folder = opts.checkpoints_dir
-        self.epoch_tracker = EpochTracker(self.folder + "/epoch.txt", self.folder + "/loss.log")
+        self.epoch_tracker = EpochTracker(self.folder + "/epoch.txt")
 
     @abstractmethod
     def forward(self):

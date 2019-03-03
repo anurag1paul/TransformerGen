@@ -14,15 +14,17 @@ from PIL import Image, ImageDraw, ImageFont
 import skimage.transform
 
 
-def weights_init_normal(m):
-
+def weights_init(m):
     classname = m.__class__.__name__
-
     if classname.find('Conv') != -1:
-        torch.nn.init.normal_(m.weight.data, 0.0, 0.01)
-    elif classname.find('BatchNorm2d') != -1:
-        torch.nn.init.normal_(m.weight.data, 1.0, 0.01)
-        torch.nn.init.constant_(m.bias.data, 0.0)
+        nn.init.orthogonal(m.weight.data, 1.0)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+    elif classname.find('Linear') != -1:
+        nn.init.orthogonal(m.weight.data, 1.0)
+        if m.bias is not None:
+            m.bias.data.fill_(0.0)
 
 
 def get_opts(params_file="config/params.yaml"):
@@ -50,6 +52,17 @@ def make_dir(file_path):
     if not os.path.exists(file_path):
         os.makedirs(file_path)
 
+
+def load_params(model, new_param):
+    for p, new_p in zip(model.parameters(), new_param):
+        p.data.copy_(new_p)
+
+
+def copy_G_params(model):
+    flatten = deepcopy(list(p.data for p in model.parameters()))
+    return flatten
+
+
 def store_loss_plots(train_losses, val_losses, opts):
     """Saves a plot of the training and validation loss curves.
     """
@@ -62,18 +75,6 @@ def store_loss_plots(train_losses, val_losses, opts):
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
     plt.tight_layout()
-
-
-def sample_images(data, batches_done, generator, number):
-    # to define
-    # x, y = next(data.data_generator())
-    # real_A = Variable(x.type(Tensor))
-    # real_B = Variable(y.type(Tensor))
-    # fake_B = generator(real_A)
-    # img_sample = torch.cat((real_A.data, fake_B.data, real_B.data), -2)
-    # save_image(img_sample, 'saved_images/%s.png' % (number), nrow=5, normalize=True)
-    # return x, y
-    pass
 
 
 # save checkpoint

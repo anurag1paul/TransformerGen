@@ -196,7 +196,6 @@ def build_models(dict_size, batch_size, model_file_name):
         lr = opts.TRAIN.ENCODER_LR
         optimizer = optim.Adam(para, lr=lr, betas=(0.5, 0.999))
 
-
     text_encoder = text_encoder.to(device)
     image_encoder = image_encoder.to(device)
 
