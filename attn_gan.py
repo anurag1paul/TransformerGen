@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from torch.backends import cudnn
 
 from base_model import BaseModel
+from data_loader import prepare_data
 from losses import words_loss, discriminator_loss, generator_loss, KL_loss
 from networks import CNN_ENCODER, RNN_ENCODER
 from attnGan.networks import D_NET64, D_NET128, D_NET256, G_NET
@@ -194,13 +195,13 @@ class AttnGAN(BaseModel):
                 ######################################################
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
-                data = data_iter.next()
-                imgs, captions, cap_lens, class_ids, keys = prepare_data(data)
+                data = next(data_iter)
+                imgs, captions, class_ids = prepare_data(data)
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
                 # sent_emb: batch_size x nef
-                words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
+                words_embs, sent_emb = text_encoder(captions, hidden)
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                 mask = (captions == 0)
                 num_words = words_embs.size(2)
