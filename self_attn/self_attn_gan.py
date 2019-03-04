@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 from attnGan.attn_gan import AttnGAN
