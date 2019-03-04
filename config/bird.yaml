@@ -5,8 +5,10 @@ DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
+DAMSM_MODEL: checkpoint-500.pth.tar
 
 TREE:
+    BASE_SIZE: 64
     BRANCH_NUM: 3
 
 
@@ -16,7 +18,7 @@ TRAIN:
     B_NET_D: True
     BATCH_SIZE: 20  # 22
     MAX_EPOCH: 600
-    SNAPSHOT_INTERVAL: 50
+    SNAPSHOT_INTERVAL: 10
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002
     #
@@ -29,6 +31,7 @@ TRAIN:
 
 
 GAN:
+    CONDITION_DIM: 100
     DF_DIM: 64
     GF_DIM: 32
     Z_DIM: 100

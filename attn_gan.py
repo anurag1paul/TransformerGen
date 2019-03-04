@@ -17,15 +17,8 @@ from utils import make_dir, weights_init, EpochTracker, copy_G_params, load_para
 
 class AttnGAN(BaseModel):
 
-    def __init__(self, device, opts, ixtoword, data_loader):
-        super(AttnGAN, self).__init__(device, opts)
-
-        self.output_dir = "checkpoint/attnGAN"
-        make_dir(self.output_dir)
-        self.model_dir = os.path.join(self.output_dir, 'Model')
-        self.image_dir = os.path.join(self.output_dir, 'Image')
-        make_dir(self.model_dir)
-        make_dir(self.image_dir)
+    def __init__(self, device, output_dir, opts, ixtoword, data_loader):
+        super(AttnGAN, self).__init__(device, output_dir, opts)
 
         cudnn.benchmark = True
 
@@ -62,16 +55,17 @@ class AttnGAN(BaseModel):
         # #######################generator and discriminators############## #
         netsD = []
 
-        netG = G_NET()
+        netG = G_NET(self.opts, self.device)
         if self.opts.TREE.BRANCH_NUM > 0:
-            netsD.append(D_NET64())
+            netsD.append(D_NET64(self.opts).to(self.device))
         if self.opts.TREE.BRANCH_NUM > 1:
-            netsD.append(D_NET128())
+            netsD.append(D_NET128(self.opts).to(self.device))
         if self.opts.TREE.BRANCH_NUM > 2:
-            netsD.append(D_NET256())
+            netsD.append(D_NET256(self.opts).to(self.device))
 
         netG.apply(weights_init)
-
+        netG = netG.to(self.device)
+        
         for i in range(len(netsD)):
             netsD[i].apply(weights_init)
 
@@ -82,13 +76,11 @@ class AttnGAN(BaseModel):
             checkpoint = torch.load(self.model_file_name)
 
             netG.load_state_dict(checkpoint['netG'])
-            netG = netG.to(self.device)
             epoch = checkpoint['epoch'] + 1
             for i in range(len(netsD)):
                 key = "netsD_{}".format(i)
                 netsD[i].load_state_dict(checkpoint[key])
-                netsD[i] = netsD[i].to(self.device)
-
+        
         return [text_encoder, image_encoder, netG, netsD, epoch]
 
     def define_optimizers(self, netG, netsD):
@@ -128,8 +120,7 @@ class AttnGAN(BaseModel):
         print('Save G/Ds models.')
 
     def save_img_results(self, netG, noise, sent_emb, words_embs, mask,
-                         image_encoder, captions, cap_lens,
-                         gen_iterations, name='current'):
+                         image_encoder, captions, epoch, step, name='current'):
         # Save images
         fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask)
         for i in range(len(attention_maps)):
@@ -146,8 +137,8 @@ class AttnGAN(BaseModel):
                                    attn_maps, att_sze, lr_imgs=lr_img, batch_size=self.batch_size, max_word_num=18)
             if img_set is not None:
                 im = Image.fromarray(img_set)
-                fullpath = '%s/G_%s_%d_%d.png'\
-                    % (self.image_dir, name, gen_iterations, i)
+                fullpath = '%s/G_%s_%d_%d_%d.png'\
+                    % (self.image_dir, name, epoch, step, i)
                 im.save(fullpath)
 
         # for i in range(len(netsD)):
@@ -196,7 +187,7 @@ class AttnGAN(BaseModel):
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
                 data = next(data_iter)
-                imgs, captions, class_ids = prepare_data(data)
+                imgs, captions, class_ids = prepare_data(data, self.device)
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
@@ -227,7 +218,7 @@ class AttnGAN(BaseModel):
                     errD.backward()
                     optimizersD[i].step()
                     errD_total += errD
-                    D_logs += 'errD%d: %.2f ' % (i, errD.data[0])
+                    D_logs += 'errD%d: %.2f ' % (i, errD.data.item())
 
                 #######################################################
                 # (4) Update G network: maximize log(D(G(z)))
@@ -244,22 +235,22 @@ class AttnGAN(BaseModel):
                                    words_embs, sent_emb, match_labels, class_ids, self.opts)
                 kl_loss = KL_loss(mu, logvar)
                 errG_total += kl_loss
-                G_logs += 'kl_loss: %.2f ' % kl_loss.data[0]
+                G_logs += 'kl_loss: %.2f ' % kl_loss.data.item()
                 # backward and update parameters
                 errG_total.backward()
                 optimizerG.step()
                 for p, avg_p in zip(netG.parameters(), avg_param_G):
                     avg_p.mul_(0.999).add_(0.001, p.data)
 
-                if gen_iterations % 100 == 0:
-                    print(D_logs + '\n' + G_logs)
+                if gen_iterations % 10 == 0:
+                    print("Epoch: "+ str(epoch) + " Step: " + str(step) + " " + D_logs + '\n' + G_logs)
                 # save images
-                if gen_iterations % 1000 == 0:
+                if gen_iterations % 100 == 0:
                     backup_para = copy_G_params(netG)
                     load_params(netG, avg_param_G)
                     self.save_img_results(netG, fixed_noise, sent_emb,
                                           words_embs, mask, image_encoder,
-                                          captions, cap_lens, epoch, name='average')
+                                          captions, epoch, step, name='average')
                     load_params(netG, backup_para)
 
             end_t = time.time()
@@ -267,7 +258,7 @@ class AttnGAN(BaseModel):
             print('''[%d/%d][%d]
                   Loss_D: %.2f Loss_G: %.2f Time: %.2fs'''
                   % (epoch, self.max_epoch, self.num_batches,
-                     errD_total.data[0], errG_total.data[0],
+                     errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
             if epoch % self.opts.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:

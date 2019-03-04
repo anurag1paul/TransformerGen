@@ -9,12 +9,11 @@ from utils import get_opts
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+output_dir = "checkpoint/attnGAN"
 data_dir = 'dataset/'
-output_directory = "checkpoints"
 epoch_file = "epoch.txt"
 log_file = "logs.log"
 
-UPDATE_INTERVAL = 5
 opts = EasyDict(get_opts("config/bird.yaml"))
 
 preprocessor = DataPreprocessor("cub", data_dir)
@@ -24,5 +23,5 @@ train_set = CubDataset(preprocessor, opts, mode='train')
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True)
 # val_loader = torch.utils.data.DataLoader(val_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=False, pin_memory=True)
 
-attn_gan = AttnGAN(device, opts, ixtoword, train_loader)
+attn_gan = AttnGAN(device, output_dir, opts, ixtoword, train_loader)
 attn_gan.train()
