@@ -4,11 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 from torch.autograd import Variable
+from torch.nn.utils import spectral_norm as SpectralNorm
 import torch.nn.functional as F
 
 from attnGan.global_attention import GlobalAttentionGeneral as ATT_NET
 from self_attn.self_attn import Self_Attn
-from spectral_norm.SpectralNormalization import SpectralNorm
 
 
 class GLU(nn.Module):
