@@ -11,7 +11,7 @@ from base_model import BaseModel
 from data_loader import prepare_data
 from inception_score import InceptionScore
 from losses import words_loss, discriminator_loss, generator_loss, KL_loss
-from damsm.networks import RNN_ENCODER
+from networks import RNN_ENCODER
 from attnGan.networks import D_NET64, D_NET128, D_NET256, G_NET
 from utils import make_dir, weights_init, EpochTracker, copy_G_params, load_params, build_super_images
 
@@ -74,8 +74,9 @@ class AttnGAN(BaseModel):
         print('# of netsD', len(netsD))
 
         epoch = 0
-        if os.path.exists(self.model_file_name.format(self.epoch_tracker.epoch)):
-            checkpoint = torch.load(self.model_file_name)
+        file_name = self.model_file_name.format(self.epoch_tracker.epoch)
+        if os.path.exists(file_name):
+            checkpoint = torch.load(file_name)
 
             netG.load_state_dict(checkpoint['netG'])
             epoch = checkpoint['epoch'] + 1
@@ -271,7 +272,7 @@ class AttnGAN(BaseModel):
                      errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
-
+            print("IS: {} {}".format(is_mean, is_std))
             if epoch % self.opts.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)
 
@@ -284,19 +285,15 @@ class AttnGAN(BaseModel):
         fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
 
         noise, fixed_noise = noise.to(self.device), fixed_noise.to(self.device)
-        val_batches = len(self.val_loader) // batch_size
+       
+        val_batches = len(self.val_loader)
         data_iter = iter(self.train_loader)
-        step = 0
         netG.eval()
-        inception_scorer = InceptionScore(len(self.val_loader), batch_size, val_batches)
-        while step < self.num_batches:
-            # reset requires_grad to be trainable for all Ds
-            # self.set_requires_grad_value(netsD, True)
-
+        inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
+        for step, data in enumerate(self.val_loader):
             ######################################################
             # (1) Prepare training data and Compute text embeddings
             ######################################################
-            data = next(data_iter)
             imgs, captions, class_ids = prepare_data(data, self.device)
 
             hidden = text_encoder.init_hidden(batch_size)
@@ -314,7 +311,7 @@ class AttnGAN(BaseModel):
             ######################################################
             noise.data.normal_(0, 1)
             fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
-            inception_scorer.predict(fake_imgs, step)
+            inception_scorer.predict(fake_imgs[-1], step)
         netG.train()
         return inception_scorer.get_ic_score()
 

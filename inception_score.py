@@ -11,19 +11,20 @@ from scipy.stats import entropy
 
 class InceptionScore:
 
-    def __init__(self, total_imgs, batch_size, splits=1):
-        self.total_imgs = total_imgs
+    def __init__(self, total_batches, batch_size, splits=1):
+        self.total_imgs = total_batches * batch_size
         self.batch_size = batch_size
         self.splits = splits
 
         self.preds = np.zeros((self.total_imgs, 1000))
-        # Load inception model
-        self.inception_model = inception_v3(pretrained=True, transform_input=False).type(self.dtype)
-        self.inception_model.eval()
-
-        # Set up dtype
+        
+	# Set up dtype
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
+
+	# Load inception model
+        self.inception_model = inception_v3(pretrained=True, transform_input=False).type(self.dtype)
+        self.inception_model.eval()
 
         self.up = nn.Upsample(size=(299, 299), mode='bilinear').type(self.dtype)
 
