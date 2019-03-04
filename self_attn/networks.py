@@ -346,7 +346,7 @@ class D_NET128(nn.Module):
         nef = opts.TEXT.EMBEDDING_DIM
         self.img_code_s16 = encode_image_by_16times(ndf)
         self.img_code_s32 = downBlock(ndf * 8, ndf * 16)
-        self.self_attn = Self_Attn(ndf*16)
+        # self.self_attn = Self_Attn(ndf*16)
         self.img_code_s32_1 = Block3x3_leakRelu(ndf * 16, ndf * 8)
         #
         if b_jcu:
@@ -358,7 +358,7 @@ class D_NET128(nn.Module):
     def forward(self, x_var):
         x_code8 = self.img_code_s16(x_var)   # 8 x 8 x 8df
         x_code4 = self.img_code_s32(x_code8)   # 4 x 4 x 16df
-        x_code4 = self.self_attn(x_code4)
+        # x_code4 = self.self_attn(x_code4)
         x_code4 = self.img_code_s32_1(x_code4)  # 4 x 4 x 8df
         return x_code4
 
@@ -372,7 +372,7 @@ class D_NET256(nn.Module):
         self.img_code_s16 = encode_image_by_16times(ndf)
         self.img_code_s32 = downBlock(ndf * 8, ndf * 16)
         self.img_code_s64 = downBlock(ndf * 16, ndf * 32)
-        self.self_attn = Self_Attn(ndf*32)
+        # self.self_attn = Self_Attn(ndf*32)
         self.img_code_s64_1 = Block3x3_leakRelu(ndf * 32, ndf * 16)
         self.img_code_s64_2 = Block3x3_leakRelu(ndf * 16, ndf * 8)
         if b_jcu:
@@ -385,7 +385,7 @@ class D_NET256(nn.Module):
         x_code16 = self.img_code_s16(x_var)
         x_code8 = self.img_code_s32(x_code16)
         x_code4 = self.img_code_s64(x_code8)
-        x_code4 = self.self_attn(x_code4)
+        # x_code4 = self.self_attn(x_code4)
         x_code4 = self.img_code_s64_1(x_code4)
         x_code4 = self.img_code_s64_2(x_code4)
         return x_code4
