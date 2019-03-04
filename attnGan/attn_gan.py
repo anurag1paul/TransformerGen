@@ -39,6 +39,7 @@ class AttnGAN(BaseModel):
         epoch_file = os.path.join(self.output_dir, "output.txt")
         self.epoch_tracker = EpochTracker(epoch_file)
         self.model_file_name = os.path.join(self.model_dir, "checkpoint_{}.pth.tar")
+        self.val_logger = None
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -81,6 +82,10 @@ class AttnGAN(BaseModel):
             for i in range(len(netsD)):
                 key = "netsD_{}".format(i)
                 netsD[i].load_state_dict(checkpoint[key])
+
+            self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'a')
+        else:
+            self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'w')
         
         return [text_encoder, image_encoder, netG, netsD, epoch]
 
@@ -255,6 +260,8 @@ class AttnGAN(BaseModel):
                     load_params(netG, backup_para)
 
             is_mean, is_std = self.validate(netG, text_encoder)
+            self.val_logger.write("{} {} {}\n".format(epoch, is_mean, is_std))
+            self.val_logger.flush()
 
             end_t = time.time()
 
