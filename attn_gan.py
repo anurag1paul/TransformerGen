@@ -34,7 +34,6 @@ class AttnGAN(BaseModel):
 
         self.pretrained_path = os.path.join("pretrained_models/", opts.DAMSM_MODEL)
 
-        self.model_dir = os.path.join(self.output_dir, "model")
         epoch_file = os.path.join(self.output_dir, "output.txt")
         self.epoch_tracker = EpochTracker(epoch_file)
         self.model_file_name = os.path.join(self.model_dir, "checkpoint_{}.pth.tar")
@@ -155,8 +154,8 @@ class AttnGAN(BaseModel):
                                None, batch_size=self.batch_size, max_word_num=18)
         if img_set is not None:
             im = Image.fromarray(img_set)
-            fullpath = '%s/D_%s_%d.png'\
-                % (self.image_dir, name, gen_iterations)
+            fullpath = '%s/D_%s_%d_%d.png'\
+                % (self.image_dir, name, epoch, step)
             im.save(fullpath)
 
     def train(self):
