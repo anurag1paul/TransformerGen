@@ -9,15 +9,16 @@ from torch.backends import cudnn
 
 from base_model import BaseModel
 from data_loader import prepare_data
+from inception_score import InceptionScore
 from losses import words_loss, discriminator_loss, generator_loss, KL_loss
-from networks import CNN_ENCODER, RNN_ENCODER
+from damsm.networks import RNN_ENCODER
 from attnGan.networks import D_NET64, D_NET128, D_NET256, G_NET
 from utils import make_dir, weights_init, EpochTracker, copy_G_params, load_params, build_super_images
 
 
 class AttnGAN(BaseModel):
 
-    def __init__(self, device, output_dir, opts, ixtoword, data_loader):
+    def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
         super(AttnGAN, self).__init__(device, output_dir, opts)
 
         cudnn.benchmark = True
@@ -29,8 +30,9 @@ class AttnGAN(BaseModel):
 
         self.n_words = len(ixtoword)
         self.ixtoword = ixtoword
-        self.data_loader = data_loader
-        self.num_batches = len(self.data_loader)
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.num_batches = len(self.train_loader)
 
         self.pretrained_path = os.path.join("pretrained_models/", opts.DAMSM_MODEL)
 
@@ -176,7 +178,7 @@ class AttnGAN(BaseModel):
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            data_iter = iter(self.data_loader)
+            data_iter = iter(self.train_loader)
             step = 0
             while step < self.num_batches:
                 # reset requires_grad to be trainable for all Ds
@@ -252,6 +254,8 @@ class AttnGAN(BaseModel):
                                           captions, epoch, step, name='average')
                     load_params(netG, backup_para)
 
+            is_mean, is_std = self.validate(netG, text_encoder)
+
             end_t = time.time()
 
             print('''[%d/%d][%d]
@@ -260,10 +264,53 @@ class AttnGAN(BaseModel):
                      errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
+
             if epoch % self.opts.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
                 self.save_model(netG, avg_param_G, netsD, epoch)
 
         self.save_model(netG, avg_param_G, netsD, self.max_epoch)
+
+    def validate(self, netG, text_encoder):
+        batch_size = self.batch_size
+        nz = self.opts.GAN.Z_DIM
+        noise = Variable(torch.FloatTensor(batch_size, nz))
+        fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
+
+        noise, fixed_noise = noise.to(self.device), fixed_noise.to(self.device)
+        val_batches = len(self.val_loader) // batch_size
+        data_iter = iter(self.train_loader)
+        step = 0
+        netG.eval()
+        inception_scorer = InceptionScore(len(self.val_loader), batch_size, val_batches)
+        while step < self.num_batches:
+            # reset requires_grad to be trainable for all Ds
+            # self.set_requires_grad_value(netsD, True)
+
+            ######################################################
+            # (1) Prepare training data and Compute text embeddings
+            ######################################################
+            data = next(data_iter)
+            imgs, captions, class_ids = prepare_data(data, self.device)
+
+            hidden = text_encoder.init_hidden(batch_size)
+            # words_embs: batch_size x nef x seq_len
+            # sent_emb: batch_size x nef
+            words_embs, sent_emb = text_encoder(captions, hidden)
+            words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+            mask = (captions == 0)
+            num_words = words_embs.size(2)
+            if mask.size(1) > num_words:
+                mask = mask[:, :num_words]
+
+            #######################################################
+            # (2) Generate fake images
+            ######################################################
+            noise.data.normal_(0, 1)
+            fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
+            inception_scorer.predict(fake_imgs, step)
+        netG.train()
+        return inception_scorer.get_ic_score()
+
 
     def save_singleimages(self, images, filenames, save_dir,
                           split_dir, sentenceID=0):
@@ -321,7 +368,7 @@ class AttnGAN(BaseModel):
             cnt = 0
 
             for _ in range(1):  # (opts.TEXT.CAPTIONS_PER_IMAGE):
-                for step, data in enumerate(self.data_loader, 0):
+                for step, data in enumerate(self.train_loader, 0):
                     cnt += batch_size
                     if step % 100 == 0:
                         print('step: ', step)

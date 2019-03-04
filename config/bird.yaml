@@ -17,7 +17,7 @@ TRAIN:
     NET_G: ''  # '../models/bird_AttnGAN2.pth'
     B_NET_D: True
     BATCH_SIZE: 20  # 22
-    MAX_EPOCH: 600
+    MAX_EPOCH: 500
     SNAPSHOT_INTERVAL: 10
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002

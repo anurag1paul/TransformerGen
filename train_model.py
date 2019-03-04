@@ -2,7 +2,7 @@ import torch
 
 from easydict import EasyDict
 
-from attn_gan import AttnGAN
+from attnGan.attn_gan import AttnGAN
 from data_loader import CubDataset
 from data_preprocess import DataPreprocessor
 from utils import get_opts

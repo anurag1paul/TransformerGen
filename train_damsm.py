@@ -1,10 +1,7 @@
 import os
-import sys
 import time
-import random
 import datetime
 import dateutil.tz
-import numpy as np
 from PIL import Image
 
 from easydict import EasyDict
@@ -16,7 +13,7 @@ import torch.backends.cudnn as cudnn
 from data_loader import CubDataset, prepare_data
 from data_preprocess import DataPreprocessor
 from losses import words_loss, sent_loss
-from networks import RNN_ENCODER, CNN_ENCODER
+from damsm.networks import RNN_ENCODER, CNN_ENCODER
 from utils import get_opts, build_super_images, make_dir, save_checkpoint, EpochTracker
 
 # dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))

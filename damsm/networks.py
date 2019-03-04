@@ -160,12 +160,3 @@ class CNN_ENCODER(nn.Module):
         if features is not None:
             features = self.emb_features(features)
         return features, cnn_code
-    
-# model = RNN_ENCODER(ntoken = 5450).to(device)
-# model.hidden = model.init_hidden(batch_size)
-# word_emb, sent_emb = model.forward(caption)
-# # print(word_emb.shape, sent_emb.shape)
-#
-# image_encoder = CNN_ENCODER(128).to(device)
-# img_features, img_sent_code = image_encoder(x)
-    
