@@ -141,12 +141,13 @@ class INIT_STAGE_G(nn.Module):
 
 
 class NEXT_STAGE_G(nn.Module):
-    def __init__(self, ngf, nef, ncf, opts):
+    def __init__(self, ngf, nef, ncf, opts, use_self_attn=False):
         super(NEXT_STAGE_G, self).__init__()
         self.gf_dim = ngf # number of gan hidden layer units
         self.ef_dim = nef # text embedding size
         self.cf_dim = ncf # conditional augmentation size
         self.opts = opts
+        self.use_self_attn = use_self_attn
         self.num_residual = opts.GAN.R_NUM
         self.define_module()
 
@@ -160,7 +161,8 @@ class NEXT_STAGE_G(nn.Module):
         ngf = self.gf_dim
         self.att = ATT_NET(ngf, self.ef_dim)
         self.residual = self._make_layer(ResBlock, ngf * 2)
-        self.self_attn = Self_Attn(ngf * 2)
+        if self.use_self_attn:
+            self.self_attn = Self_Attn(ngf * 2)
         self.upsample = upBlock(ngf * 2, ngf)
 
     def forward(self, h_code, c_code, word_embs, mask):
@@ -174,7 +176,8 @@ class NEXT_STAGE_G(nn.Module):
         c_code, att = self.att(h_code, word_embs)
         h_c_code = torch.cat((h_code, c_code), 1)
         out_code = self.residual(h_c_code)
-        out_code = self.self_attn(out_code)
+        if self.use_self_attn:
+            out_code = self.self_attn(out_code)
         # state size ngf/2 x 2in_size x 2in_size
         out_code = self.upsample(out_code)
 
@@ -209,10 +212,10 @@ class G_NET(nn.Module):
             self.img_net1 = GET_IMAGE_G(ngf)
         # gf x 64 x 64
         if opts.TREE.BRANCH_NUM > 1:
-            self.h_net2 = NEXT_STAGE_G(ngf, nef, ncf, opts)
+            self.h_net2 = NEXT_STAGE_G(ngf, nef, ncf, opts, use_self_attn=True)
             self.img_net2 = GET_IMAGE_G(ngf)
         if opts.TREE.BRANCH_NUM > 2:
-            self.h_net3 = NEXT_STAGE_G(ngf, nef, ncf, opts)
+            self.h_net3 = NEXT_STAGE_G(ngf, nef, ncf, opts, use_self_attn=False)
             self.img_net3 = GET_IMAGE_G(ngf)
 
     def forward(self, z_code, sent_emb, word_embs, mask):
