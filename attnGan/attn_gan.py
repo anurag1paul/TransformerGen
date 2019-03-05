@@ -114,6 +114,7 @@ class AttnGAN(BaseModel):
         return real_labels, fake_labels, match_labels
 
     def save_model(self, netG, avg_param_G, netsD, epoch):
+        self.epoch_tracker.write(epoch)
         backup_para = copy_G_params(netG)
         checkpoint = {'epoch':epoch, 'netG':None, 'netsD_0':None, 'netsD_1':None, 'netsD_2':None,}
         load_params(netG, avg_param_G)
