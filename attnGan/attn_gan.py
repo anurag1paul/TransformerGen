@@ -291,7 +291,7 @@ class AttnGAN(BaseModel):
         val_batches = len(self.val_loader)
         data_iter = iter(self.train_loader)
         netG.eval()
-        inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
+        inception_scorer = InceptionScore(val_batches, batch_size, 1)
         for step, data in enumerate(self.val_loader):
             ######################################################
             # (1) Prepare training data and Compute text embeddings
