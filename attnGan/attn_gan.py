@@ -36,7 +36,7 @@ class AttnGAN(BaseModel):
 
         self.pretrained_path = os.path.join("pretrained_models/", opts.DAMSM_MODEL)
 
-        epoch_file = os.path.join(self.output_dir, "output.txt")
+        epoch_file = os.path.join(self.output_dir, "epoch.txt")
         self.epoch_tracker = EpochTracker(epoch_file)
         self.model_file_name = os.path.join(self.model_dir, "checkpoint_{}.pth.tar")
         self.val_logger = None

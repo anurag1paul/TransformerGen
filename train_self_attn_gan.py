@@ -11,7 +11,6 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 output_dir = "checkpoints/selfAttnGAN"
 data_dir = 'dataset/'
-epoch_file = "epoch.txt"
 log_file = "logs.log"
 
 opts = EasyDict(get_opts("config/bird.yaml"))
