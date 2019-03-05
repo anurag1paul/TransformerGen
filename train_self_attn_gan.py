@@ -13,7 +13,7 @@ output_dir = "checkpoints/selfAttnGAN"
 data_dir = 'dataset/'
 log_file = "logs.log"
 
-opts = EasyDict(get_opts("config/bird.yaml"))
+opts = EasyDict(get_opts("config/attn_bird.yaml"))
 
 preprocessor = DataPreprocessor("cub", data_dir)
 ixtoword = preprocessor.get_idx_to_word()
