@@ -1,0 +1,161 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
+import os
+
+import numpy
+import numpy as np
+import torch
+import pandas as pd
+
+from PIL import Image
+from matplotlib import pyplot as plt
+from nltk import RegexpTokenizer
+from torch.autograd import Variable
+from torch.utils.data import Dataset
+from torchvision import transforms
+
+from data_preprocess import DataPreprocessor
+
+
+# In[ ]:
+
+
+def prepare_data(data, device):
+    imgs, captions = data
+
+    real_imgs = []
+    for i in range(len(imgs)):
+        real_imgs.append(Variable(imgs[i]).to(device))
+
+    captions = captions.squeeze()
+    
+    captions = Variable(captions).to(device)
+
+    return [real_imgs, captions]
+
+
+# In[ ]:
+
+
+def get_imgs(img_path, imsize, opts, bbox=None,
+             transform=None):
+    normalize = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    img = Image.open(img_path).convert('RGB')
+    width, height = img.size
+
+    if bbox is not None:
+        r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
+        center_x = int((2 * bbox[0] + bbox[2]) / 2)
+        center_y = int((2 * bbox[1] + bbox[3]) / 2)
+        y1 = np.maximum(0, center_y - r)
+        y2 = np.minimum(height, center_y + r)
+        x1 = np.maximum(0, center_x - r)
+        x2 = np.minimum(width, center_x + r)
+        img = img.crop([x1, y1, x2, y2])
+
+    if transform is not None:
+        img = transform(img)
+
+    ret = []
+
+    for i in range(opts.TREE.BRANCH_NUM):
+        # print(imsize[i])
+        re_img = transforms.Resize((imsize[i], imsize[i]))(img)
+        ret.append(normalize(re_img))
+
+    return ret
+
+
+# In[ ]:
+
+
+class FlikerDataset(Dataset):
+
+    def __init__(self, preprocessor: DataPreprocessor, opts, mode="train"):
+        super(FlikerDataset, self).__init__()
+        self.preprocessor = preprocessor
+        self.mode = mode
+        self.max_caption_size = 30
+        self.opts = opts
+        self.word_to_idx = self.preprocessor.get_word_to_idx()
+
+        if mode == "train":
+            self.img_file_names = self.preprocessor.get_train_files()
+        elif mode == "val":
+            self.img_file_names = self.preprocessor.get_val_files()
+        else:
+            self.img_file_names = self.preprocessor.get_test_files()
+
+        self.img_captions = []
+        self.img_captions_dict = preprocessor.get_img_caption_files()
+        
+        
+
+        for name in self.img_file_names:
+            captions = self.tokenize(self.img_captions_dict[name])
+            padded = self.padding(captions)
+            self.img_captions.append(padded)
+
+        self.imsize = []
+        base_size = opts.TREE.BASE_SIZE
+        for i in range(opts.TREE.BRANCH_NUM):
+            self.imsize.append(base_size)
+            base_size = base_size * 2
+        
+
+    def __len__(self):
+        return len(self.img_file_names)
+    
+    def imshow(self, img):
+        img = img / 2 + 0.5     # unnormalize
+        npimg = img.cpu().detach().numpy()
+        plt.figure(figsize = (5,5))
+        plt.imshow(np.transpose(npimg, (1, 2, 0)), aspect='auto')
+        
+    def padding(self, unpadded):
+        lens = np.array([len(item) for item in unpadded])
+        mask = lens[:,None] > np.arange(self.max_caption_size)
+        out = np.full(mask.shape,0)
+        for i, e in enumerate(unpadded):
+            if len(e) > self.max_caption_size:
+                unpadded[i] = unpadded[i][:self.max_caption_size]
+        out[mask] = np.concatenate(unpadded)
+        return torch.LongTensor(out)
+
+    def tokenize(self, captions):
+        all_cap_tokens = []
+        for cap in captions:
+            if len(cap) == 0:
+                continue
+            cap = cap.replace(u"\ufffd\ufffd", u" ")
+            tokenizer = RegexpTokenizer(r'\w+')
+            tokens = tokenizer.tokenize(cap.lower())
+
+            if len(tokens) == 0:
+                continue
+
+            tokens_new = []
+            for t in tokens:
+                t = t.encode('ascii', 'ignore').decode('ascii')
+                if len(t) > 0:
+                    if t in self.word_to_idx:
+                        tokens_new.append(self.word_to_idx[t])
+            all_cap_tokens.append(tokens_new)
+        return all_cap_tokens
+    
+    def __getitem__(self, idx):
+        image_name = os.path.join(self.preprocessor.data_path, self.img_file_names[idx])
+#         print(image_name)
+        image = get_imgs(image_name, self.imsize, self.opts)
+        # select a random sentence
+        cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
+        caption = self.img_captions[idx][cap_idx]
+
+        return image, caption
+
