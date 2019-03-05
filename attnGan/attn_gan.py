@@ -291,29 +291,30 @@ class AttnGAN(BaseModel):
         val_batches = len(self.val_loader)
         data_iter = iter(self.train_loader)
         netG.eval()
-        inception_scorer = InceptionScore(val_batches, batch_size, 1)
-        for step, data in enumerate(self.val_loader):
-            ######################################################
-            # (1) Prepare training data and Compute text embeddings
-            ######################################################
-            imgs, captions, class_ids = prepare_data(data, self.device)
+        inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
+        with torch.no_grad():
+            for step, data in enumerate(self.val_loader):
+                ######################################################
+                # (1) Prepare training data and Compute text embeddings
+                ######################################################
+                imgs, captions, class_ids = prepare_data(data, self.device)
 
-            hidden = text_encoder.init_hidden(batch_size)
-            # words_embs: batch_size x nef x seq_len
-            # sent_emb: batch_size x nef
-            words_embs, sent_emb = text_encoder(captions, hidden)
-            words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
-            mask = (captions == 0)
-            num_words = words_embs.size(2)
-            if mask.size(1) > num_words:
-                mask = mask[:, :num_words]
+                hidden = text_encoder.init_hidden(batch_size)
+                # words_embs: batch_size x nef x seq_len
+                # sent_emb: batch_size x nef
+                words_embs, sent_emb = text_encoder(captions, hidden)
+                words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                mask = (captions == 0)
+                num_words = words_embs.size(2)
+                if mask.size(1) > num_words:
+                    mask = mask[:, :num_words]
 
-            #######################################################
-            # (2) Generate fake images
-            ######################################################
-            noise.data.normal_(0, 1)
-            fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
-            inception_scorer.predict(fake_imgs[-1], step)
+                #######################################################
+                # (2) Generate fake images
+                ######################################################
+                noise.data.normal_(0, 1)
+                fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
+                inception_scorer.predict(fake_imgs[-1], step)
         netG.train()
         return inception_scorer.get_ic_score()
 

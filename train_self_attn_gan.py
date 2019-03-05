@@ -7,10 +7,13 @@ from data_preprocess import DataPreprocessor
 from self_attn.self_attn_gan import SelfAttnGAN
 from utils import get_opts
 
+torch.set_default_tensor_type(torch.cuda.FloatTensor)
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 output_dir = "checkpoints/selfAttnGAN"
 data_dir = 'dataset/'
+epoch_file = "epoch.txt"
 log_file = "logs.log"
 
 opts = EasyDict(get_opts("config/attn_bird.yaml"))
