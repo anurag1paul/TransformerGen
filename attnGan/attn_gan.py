@@ -40,6 +40,7 @@ class AttnGAN(BaseModel):
         self.epoch_tracker = EpochTracker(epoch_file)
         self.model_file_name = os.path.join(self.model_dir, "checkpoint_{}.pth.tar")
         self.val_logger = None
+        self.adam_betas = (0.5, 0.999)
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -96,12 +97,12 @@ class AttnGAN(BaseModel):
         for i in range(num_Ds):
             opt = torch.optim.Adam(netsD[i].parameters(),
                                    lr=self.opts.TRAIN.DISCRIMINATOR_LR,
-                                   betas=(0.5, 0.999))
+                                   betas=self.adam_betas)
             optimizersD.append(opt)
 
         optimizerG = torch.optim.Adam(netG.parameters(),
                                 lr=self.opts.TRAIN.GENERATOR_LR,
-                                betas=(0.5, 0.999))
+                                betas=self.adam_betas)
 
         return optimizerG, optimizersD
 

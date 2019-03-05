@@ -11,6 +11,7 @@ class SelfAttnGAN(AttnGAN):
 
     def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
         super(SelfAttnGAN, self).__init__(device, output_dir, opts, ixtoword, train_loader, val_loader)
+        self.adam_betas = (0.0, 0.9)
 
 
     def build_models(self):
