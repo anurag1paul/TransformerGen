@@ -11,8 +11,6 @@ class SelfAttnGAN(AttnGAN):
 
     def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
         super(SelfAttnGAN, self).__init__(device, output_dir, opts, ixtoword, train_loader, val_loader)
-        self.adam_betas = (0.0, 0.9)
-
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -62,3 +60,17 @@ class SelfAttnGAN(AttnGAN):
             self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'w')
 
         return [text_encoder, image_encoder, netG, netsD, epoch]
+
+    def define_optimizers(self, netG, netsD):
+        optimizersD = []
+        num_Ds = len(netsD)
+        for i in range(num_Ds):
+            opt = torch.optim.SGD(netsD[i].parameters(),
+                                   lr=self.opts.TRAIN.DISCRIMINATOR_LR)
+            optimizersD.append(opt)
+
+        optimizerG = torch.optim.Adam(netG.parameters(),
+                                lr=self.opts.TRAIN.GENERATOR_LR,
+                                betas=self.adam_betas)
+
+        return optimizerG, optimizersD

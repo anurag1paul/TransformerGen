@@ -40,7 +40,8 @@ class AttnGAN(BaseModel):
         self.epoch_tracker = EpochTracker(epoch_file)
         self.model_file_name = os.path.join(self.model_dir, "checkpoint_{}.pth.tar")
         self.val_logger = None
-        self.adam_betas = (0.5, 0.999)
+        self.losses_logger = None
+        self.adam_betas = (self.opts.TRAIN.ADAM_BETA1, self.opts.TRAIN.ADAM_BETA2)
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -86,8 +87,10 @@ class AttnGAN(BaseModel):
                 netsD[i].load_state_dict(checkpoint[key])
 
             self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'a')
+            self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'a')
         else:
             self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'w')
+            self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'a')
         
         return [text_encoder, image_encoder, netG, netsD, epoch]
 

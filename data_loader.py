@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 
 import numpy
 import numpy as np
@@ -11,17 +12,20 @@ from nltk import RegexpTokenizer
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 from torchvision import transforms
+from pytorch_pretrained_bert.tokenization import BertTokenizer
 
 from data_preprocess import DataPreprocessor
 
 
 def prepare_data(data, device):
-    imgs, captions, class_ids = data
+    imgs, captions, class_ids, caption_lengths = data
 
     real_imgs = []
     for i in range(len(imgs)):
         real_imgs.append(Variable(imgs[i]).to(device))
 
+    max_len = torch.max(caption_lengths)
+    captions = captions[:, :max_len]
     captions = captions.squeeze()
     class_ids = class_ids.numpy()
 
@@ -61,15 +65,74 @@ def get_imgs(img_path, imsize, opts, bbox=None,
     return ret
 
 
+class AbstractTokenizer(ABC):
+
+    def __init__(self, max_caption_size):
+        self.max_caption_size =max_caption_size
+
+    def get_padded_tensor(self, caption):
+        unpadded = self.tokenize(caption)
+        length = len(unpadded)
+        if length > self.max_caption_size:
+            out = unpadded[:self.max_caption_size]
+        else:
+            out = [0] * self.max_caption_size
+            out[:length] = unpadded
+
+        return torch.LongTensor(out), length
+
+    @abstractmethod
+    def tokenize(self, caption):
+        pass
+
+
+class DefaultCaptionTokenizer(AbstractTokenizer):
+
+    def __init__(self, word_to_idx, max_caption_size):
+        super().__init__(max_caption_size)
+        self.word_to_idx = word_to_idx
+        self.max_caption_size = max_caption_size
+
+    def tokenize(self, caption):
+        cap = caption.replace(u"\ufffd\ufffd", u" ")
+        tokenizer = RegexpTokenizer(r'\w+')
+        tokens = tokenizer.tokenize(cap.lower())
+
+        tokens_new = []
+        for t in tokens:
+            t = t.encode('ascii', 'ignore').decode('ascii')
+            if len(t) > 0:
+                if t in self.word_to_idx:
+                    tokens_new.append(self.word_to_idx[t])
+
+        return tokens_new
+
+
+class BertCaptionTokenizer(AbstractTokenizer):
+
+    def __init__(self, max_caption_size):
+        super().__init__(max_caption_size)
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+
+    def tokenize(self, caption):
+        unpadded = self.tokenizer.tokenize(caption)
+        out = self.tokenizer.convert_tokens_to_ids(unpadded)
+        return out
+
+
 class CubDataset(Dataset):
 
-    def __init__(self, preprocessor: DataPreprocessor, opts, mode="train"):
+    def __init__(self, preprocessor: DataPreprocessor, opts, tokenizer=None, mode="train"):
         super(CubDataset, self).__init__()
         self.preprocessor = preprocessor
         self.mode = mode
         self.max_caption_size = 30
         self.opts = opts
-        self.word_to_idx = self.preprocessor.get_word_to_idx()
+
+        if tokenizer is None:
+            self.tokenizer = DefaultCaptionTokenizer(self.preprocessor.get_word_to_idx(), self.max_caption_size)
+        else:
+            self.tokenizer = tokenizer
 
         if mode == "train":
             self.img_file_names = self.preprocessor.get_train_files()
@@ -86,9 +149,8 @@ class CubDataset(Dataset):
             txt_name = '.'.join(name_parts[0:-1]) + '.txt'
             txt_path = os.path.join(self.preprocessor.captions_path, txt_name)
             with open(txt_path,  encoding='utf-8') as captions_file:
-                captions = self.tokenize(captions_file.read().splitlines())
-                padded = self.padding(captions)
-                self.img_captions.append(padded)
+                captions = captions_file.read().splitlines()
+                self.img_captions.append(captions)
 
         self.imsize = []
         base_size = opts.TREE.BASE_SIZE
@@ -98,43 +160,6 @@ class CubDataset(Dataset):
 
     def __len__(self):
         return len(self.img_file_names)
-    
-    def imshow(self, img):
-        img = img / 2 + 0.5     # unnormalize
-        npimg = img.cpu().detach().numpy()
-        plt.figure(figsize = (5,5))
-        plt.imshow(np.transpose(npimg, (1, 2, 0)), aspect='auto')
-        
-    def padding(self, unpadded):
-        lens = np.array([len(item) for item in unpadded])
-        mask = lens[:,None] > np.arange(self.max_caption_size)
-        out = np.full(mask.shape,0)
-        for i, e in enumerate(unpadded):
-            if len(e) > self.max_caption_size:
-                unpadded[i] = unpadded[i][:self.max_caption_size]
-        out[mask] = np.concatenate(unpadded)
-        return torch.LongTensor(out)
-
-    def tokenize(self, captions):
-        all_cap_tokens = []
-        for cap in captions:
-            if len(cap) == 0:
-                continue
-            cap = cap.replace(u"\ufffd\ufffd", u" ")
-            tokenizer = RegexpTokenizer(r'\w+')
-            tokens = tokenizer.tokenize(cap.lower())
-
-            if len(tokens) == 0:
-                continue
-
-            tokens_new = []
-            for t in tokens:
-                t = t.encode('ascii', 'ignore').decode('ascii')
-                if len(t) > 0:
-                    if t in self.word_to_idx:
-                        tokens_new.append(self.word_to_idx[t])
-            all_cap_tokens.append(tokens_new)
-        return all_cap_tokens
 
     def load_data(self):
         bbox_path = os.path.join(self.preprocessor.data_dir, 'bounding_boxes.txt')
@@ -167,8 +192,8 @@ class CubDataset(Dataset):
         image = get_imgs(image_name, self.imsize, self.opts, bbox=self.filename_bbox[self.img_file_names[idx]])
         # select a random sentence
         cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
-        caption = self.img_captions[idx][cap_idx]
-
+        caption, caption_length = self.tokenizer.get_padded_tensor(self.img_captions[idx][cap_idx])
         class_id = numpy.array(self.filename_class[self.img_file_names[idx]])
+        caption_length = numpy.array(caption_length)
 
-        return image, caption, class_id
+        return image, caption, class_id, caption_length

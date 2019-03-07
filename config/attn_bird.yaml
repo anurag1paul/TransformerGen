@@ -5,6 +5,7 @@ DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
+CHECKPOINTS_DIR: selfAttnGAN
 DAMSM_MODEL: checkpoint-500.pth.tar
 
 TREE:
@@ -17,10 +18,12 @@ TRAIN:
     NET_G: ''  # '../models/bird_AttnGAN2.pth'
     B_NET_D: True
     BATCH_SIZE: 16  # 22
-    MAX_EPOCH: 500
-    SNAPSHOT_INTERVAL: 10
-    DISCRIMINATOR_LR: 0.0002
-    GENERATOR_LR: 0.0002
+    MAX_EPOCH: 150
+    SNAPSHOT_INTERVAL: 5
+    DISCRIMINATOR_LR: 0.0004
+    GENERATOR_LR: 0.0001
+    ADAM_BETA1 : 0.5
+    ADAM_BETA2: 0.999
     #
     NET_E: '../DAMSMencoders/bird/text_encoder200.pth'
     SMOOTH:

@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 from easydict import EasyDict
@@ -11,12 +13,12 @@ torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-output_dir = "checkpoints/selfAttnGAN"
+opts = EasyDict(get_opts("config/attn_bird.yaml"))
+
+output_dir = os.path.join("checkpoints/", opts.CHECKPOINTS_DIR)
 data_dir = 'dataset/'
 epoch_file = "epoch.txt"
 log_file = "logs.log"
-
-opts = EasyDict(get_opts("config/attn_bird.yaml"))
 
 preprocessor = DataPreprocessor("cub", data_dir)
 ixtoword = preprocessor.get_idx_to_word()
