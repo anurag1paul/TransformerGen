@@ -90,7 +90,7 @@ class AttnGAN(BaseModel):
             self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'a')
         else:
             self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'w')
-            self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'a')
+            self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'w')
         
         return [text_encoder, image_encoder, netG, netsD, epoch]
 
