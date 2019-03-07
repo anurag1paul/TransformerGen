@@ -334,8 +334,9 @@ class AttnGAN(BaseModel):
         netG.train()
         for i in range(len(netsD)):
             netsD[i].train()
-
-        return inception_scorer.get_ic_score(), sum(total_loss) / val_batches
+            
+        m, s = inception_scorer.get_ic_score()
+        return m, s, sum(total_loss) / val_batches
 
 
     def save_singleimages(self, images, filenames, save_dir,
