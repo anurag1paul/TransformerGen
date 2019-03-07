@@ -265,9 +265,12 @@ class AttnGAN(BaseModel):
                                           captions, epoch, step, name='average')
                     load_params(netG, backup_para)
 
-            is_mean, is_std = self.validate(netG, text_encoder)
+            is_mean, is_std, error_G_val = self.validate(netG, netsD, text_encoder, image_encoder)
             self.val_logger.write("{} {} {}\n".format(epoch, is_mean, is_std))
             self.val_logger.flush()
+
+            self.losses_logger.write("{} {} {}\n".format(epoch, errG_total.data.item(), error_G_val))
+            self.losses_logger.flush()
 
             end_t = time.time()
 
@@ -283,17 +286,21 @@ class AttnGAN(BaseModel):
 
         self.save_model(netG, avg_param_G, netsD, self.max_epoch)
 
-    def validate(self, netG, text_encoder):
+    def validate(self, netG, netsD, text_encoder, image_encoder):
         batch_size = self.batch_size
         nz = self.opts.GAN.Z_DIM
+        real_labels, fake_labels, match_labels = self.prepare_labels()
+
         noise = Variable(torch.FloatTensor(batch_size, nz))
         fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
 
         noise, fixed_noise = noise.to(self.device), fixed_noise.to(self.device)
        
         val_batches = len(self.val_loader)
-        data_iter = iter(self.train_loader)
         netG.eval()
+        for i in range(len(netsD)):
+            netsD[i].eval()
+
         inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
         with torch.no_grad():
             for step, data in enumerate(self.val_loader):
@@ -317,8 +324,16 @@ class AttnGAN(BaseModel):
                 ######################################################
                 noise.data.normal_(0, 1)
                 fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
+                errG_total, G_logs = generator_loss(netsD, image_encoder, fake_imgs, real_labels,
+                                   words_embs, sent_emb, match_labels, class_ids, self.opts)
+                kl_loss = KL_loss(mu, logvar)
+                errG_total += kl_loss
+
                 inception_scorer.predict(fake_imgs[-1], step)
         netG.train()
+        for i in range(len(netsD)):
+            netsD[i].train()
+
         return inception_scorer.get_ic_score()
 
 
@@ -355,7 +370,7 @@ class AttnGAN(BaseModel):
             #
             text_encoder = RNN_ENCODER(self.n_words, nhidden=self.opts.TEXT.EMBEDDING_DIM)
             state_dict = \
-                torch.load(opts.TRAIN.NET_E, map_location=lambda storage, loc: storage)
+                torch.load(self.opts.TRAIN.NET_E, map_location=lambda storage, loc: storage)
             text_encoder.load_state_dict(state_dict)
             print('Load text encoder from:', opts.TRAIN.NET_E)
             text_encoder = text_encoder.cuda()
