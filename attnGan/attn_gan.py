@@ -302,6 +302,7 @@ class AttnGAN(BaseModel):
             netsD[i].eval()
 
         inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
+        total_loss = []
         with torch.no_grad():
             for step, data in enumerate(self.val_loader):
                 ######################################################
@@ -328,13 +329,13 @@ class AttnGAN(BaseModel):
                                    words_embs, sent_emb, match_labels, class_ids, self.opts)
                 kl_loss = KL_loss(mu, logvar)
                 errG_total += kl_loss
-
+                total_loss.append(errG_total.data.item())
                 inception_scorer.predict(fake_imgs[-1], step)
         netG.train()
         for i in range(len(netsD)):
             netsD[i].train()
 
-        return inception_scorer.get_ic_score()
+        return inception_scorer.get_ic_score(), sum(total_loss) / val_batches
 
 
     def save_singleimages(self, images, filenames, save_dir,
