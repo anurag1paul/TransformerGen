@@ -70,9 +70,9 @@ class BERT_ENCODER(nn.Module):
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         for param in self.bert.parameters():
             param.requires_grad = False
-        self.word_enc = nn.Sequential(nn.Linear(768*4, 768*2),
-                                      nn.Linear(768*4, 768),
-                                      nn.Linear(768, self.enc_size),
+        self.word_enc = nn.Sequential([nn.Linear(768*4, 768*2),
+                                       nn.Linear(768*4, 768),
+                                       nn.Linear(768, self.enc_size)])
         self.sent_enc = nn.Linear(768, self.enc_size)
 
     def forward(self, captions, input_mask):
