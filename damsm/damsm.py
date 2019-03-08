@@ -78,7 +78,8 @@ class Damsm:
 
             # `clip_grad_norm` helps prevent
             # the exploding gradient problem in RNNs / LSTMs.
-            torch.nn.utils.clip_grad_norm_(text_encoder.parameters(), self.opts.TRAIN.RNN_GRAD_CLIP)
+            if self.opts.TEXT.ENCODER != 'bert':
+                torch.nn.utils.clip_grad_norm_(text_encoder.parameters(), self.opts.TRAIN.RNN_GRAD_CLIP)
             optimizer.step()
 
             if step != 0 and step % self.update_interval == 0:
