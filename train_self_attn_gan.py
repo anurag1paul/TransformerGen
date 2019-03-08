@@ -6,7 +6,7 @@ from easydict import EasyDict
 
 from data_loader import CubDataset
 from data_preprocess import DataPreprocessor
-from self_attn.self_attn_gan import SelfAttnGAN
+from self_attn.self_attn_gan import SelfAttnGAN, SelfAttnBert
 from utils import get_opts
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -27,5 +27,9 @@ val_set = CubDataset(preprocessor, opts, mode='val')
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, drop_last=True)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, drop_last=True)
 
-self_attn_gan = SelfAttnGAN(device, output_dir, opts, ixtoword, train_loader, val_loader)
+if opts.TEXT.ENCODER == "lstm":
+    self_attn_gan = SelfAttnGAN(device, output_dir, opts, ixtoword, train_loader, val_loader)
+else:
+    self_attn_gan = SelfAttnBert(device, output_dir, opts, ixtoword, train_loader, val_loader)
+
 self_attn_gan.train()

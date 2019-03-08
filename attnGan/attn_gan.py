@@ -2,9 +2,9 @@ import os
 import time
 
 import torch
+import numpy as np
 from PIL import Image
 from torch.autograd import Variable
-
 from torch.backends import cudnn
 from torch.optim.lr_scheduler import LambdaLR
 
@@ -12,7 +12,7 @@ from base_model import BaseModel
 from data_loader import prepare_data
 from inception_score import InceptionScore
 from losses import words_loss, discriminator_loss, generator_loss, KL_loss
-from networks import RNN_ENCODER
+from networks import RNN_ENCODER, CNN_ENCODER
 from attnGan.networks import D_NET64, D_NET128, D_NET256, G_NET
 from utils import make_dir, weights_init, EpochTracker, copy_G_params, load_params, build_super_images
 
@@ -173,6 +173,14 @@ class AttnGAN(BaseModel):
                 % (self.image_dir, name, epoch, step)
             im.save(fullpath)
 
+    def text_encoder_forward(self, text_encoder, captions, captions_mask):
+        batch_size = text_encoder.size(0)
+        hidden = text_encoder.init_hidden(batch_size)
+        # words_embs: batch_size x nef x seq_len
+        # sent_emb: batch_size x nef
+        words_embs, sent_emb = text_encoder(captions, hidden)
+        return words_embs, sent_emb
+
     def train(self):
         text_encoder, image_encoder, netG, netsD, start_epoch = self.build_models()
         avg_param_G = copy_G_params(netG)
@@ -212,12 +220,9 @@ class AttnGAN(BaseModel):
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
                 data = next(data_iter)
-                imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
+                imgs, captions, class_ids, captions_mask = prepare_data(data, self.device)
 
-                hidden = text_encoder.init_hidden(batch_size)
-                # words_embs: batch_size x nef x seq_len
-                # sent_emb: batch_size x nef
-                words_embs, sent_emb = text_encoder(captions, hidden)
+                words_embs, sent_emb = self.text_encoder_forward(text_encoder, captions, captions_mask)
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                 mask = (captions == 0)
                 num_words = words_embs.size(2)
@@ -323,10 +328,7 @@ class AttnGAN(BaseModel):
                 ######################################################
                 imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
 
-                hidden = text_encoder.init_hidden(batch_size)
-                # words_embs: batch_size x nef x seq_len
-                # sent_emb: batch_size x nef
-                words_embs, sent_emb = text_encoder(captions, hidden)
+                words_embs, sent_emb = self.text_encoder_forward(text_encoder, captions, input_mask)
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                 mask = (captions == 0)
                 num_words = words_embs.size(2)
@@ -352,7 +354,6 @@ class AttnGAN(BaseModel):
         m, s = inception_scorer.get_ic_score()
         return m, s, sum(total_loss) / val_batches
 
-
     def save_singleimages(self, images, filenames, save_dir,
                           split_dir, sentenceID=0):
         for i in range(images.size(0)):
@@ -373,79 +374,76 @@ class AttnGAN(BaseModel):
             im.save(fullpath)
 
     def sampling(self, split_dir):
-        if self.opts.TRAIN.NET_G == '':
-            print('Error: the path for morels is not found!')
-        else:
-            if split_dir == 'test':
-                split_dir = 'valid'
-            # Build and load the generator
-            netG = G_NET()
-            netG.apply(weights_init)
-            netG.to(self.device)
-            netG.eval()
-            #
-            text_encoder = RNN_ENCODER(self.n_words, nhidden=self.opts.TEXT.EMBEDDING_DIM)
-            state_dict = \
-                torch.load(self.opts.TRAIN.NET_E, map_location=lambda storage, loc: storage)
-            text_encoder.load_state_dict(state_dict)
-            print('Load text encoder from:', opts.TRAIN.NET_E)
-            text_encoder = text_encoder.cuda()
-            text_encoder.eval()
 
-            batch_size = self.batch_size
-            nz = opts.GAN.Z_DIM
-            noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
-            noise = noise.cuda()
+        if split_dir == 'test':
+            split_dir = 'valid'
+        # Build and load the generator
+        text_encoder, netG = self.build_models_for_test()
 
-            state_dict = torch.load(self.model_dir, map_location=lambda storage, loc: storage)
-            # state_dict = torch.load(opts.TRAIN.NET_G)
-            netG.load_state_dict(state_dict)
-            print('Load G from: ', self.model_dir)
+        batch_size = self.batch_size
+        nz = self.opts.GAN.Z_DIM
+        noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
+        noise = noise.cuda()
 
-            # the path to save generated images
-            save_dir = os.path.join(self.output_dir, "samples")
-            make_dir(save_dir)
+        # the path to save generated images
+        save_dir = os.path.join(self.output_dir, "samples")
+        make_dir(save_dir)
 
-            cnt = 0
+        cnt = 0
 
-            for _ in range(1):  # (opts.TEXT.CAPTIONS_PER_IMAGE):
-                for step, data in enumerate(self.train_loader, 0):
-                    cnt += batch_size
-                    if step % 100 == 0:
-                        print('step: ', step)
-                    # if step > 50:
-                    #     break
+        for _ in range(1):  # (opts.TEXT.CAPTIONS_PER_IMAGE):
+            for step, data in enumerate(self.train_loader, 0):
+                cnt += batch_size
+                if step % 100 == 0:
+                    print('step: ', step)
+                if step > 50:
+                    break
 
-                    imgs, captions, class_ids, input_mask = prepare_data(data)
+                imgs, captions, class_ids, input_mask = prepare_data(data)
 
-                    hidden = text_encoder.init_hidden(batch_size)
-                    # words_embs: batch_size x nef x seq_len
-                    # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(captions, hidden)
-                    words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
-                    mask = (captions == 0)
-                    num_words = words_embs.size(2)
-                    if mask.size(1) > num_words:
-                        mask = mask[:, :num_words]
+                words_embs, sent_emb = self.text_encoder_forward(text_encoder, captions, input_mask)
+                words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                mask = (captions == 0)
+                num_words = words_embs.size(2)
+                if mask.size(1) > num_words:
+                    mask = mask[:, :num_words]
 
-                    #######################################################
-                    # (2) Generate fake images
-                    ######################################################
-                    noise.data.normal_(0, 1)
-                    fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
-                    for j in range(batch_size):
-                        s_tmp = '%s/single/%s' % (save_dir, keys[j])
-                        folder = s_tmp[:s_tmp.rfind('/')]
-                        if not os.path.isdir(folder):
-                            print('Make a new folder: ', folder)
-                            make_dir(folder)
-                        k = -1
-                        # for k in range(len(fake_imgs)):
-                        im = fake_imgs[k][j].data.cpu().numpy()
-                        # [-1, 1] --> [0, 255]
-                        im = (im + 1.0) * 127.5
-                        im = im.astype(np.uint8)
-                        im = np.transpose(im, (1, 2, 0))
-                        im = Image.fromarray(im)
-                        fullpath = '%s_s%d.png' % (s_tmp, k)
-                        im.save(fullpath)
+                #######################################################
+                # (2) Generate fake images
+                ######################################################
+                noise.data.normal_(0, 1)
+                fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
+                for j in range(batch_size):
+                    s_tmp = '%s/single/%s' % (save_dir, keys[j])
+                    folder = s_tmp[:s_tmp.rfind('/')]
+                    if not os.path.isdir(folder):
+                        print('Make a new folder: ', folder)
+                        make_dir(folder)
+                    k = -1
+                    # for k in range(len(fake_imgs)):
+                    im = fake_imgs[k][j].data.cpu().numpy()
+                    # [-1, 1] --> [0, 255]
+                    im = (im + 1.0) * 127.5
+                    im = im.astype(np.uint8)
+                    im = np.transpose(im, (1, 2, 0))
+                    im = Image.fromarray(im)
+                    fullpath = '%s_s%d.png' % (s_tmp, k)
+                    im.save(fullpath)
+
+    def build_models_for_test(self):
+        # ###################encoders######################################## #
+        checkpoint = torch.load(self.pretrained_path)
+        text_encoder = checkpoint['text_encoder'].to(self.device)
+        # clear memory
+        del checkpoint
+        self.set_requires_grad([text_encoder])
+        text_encoder.eval()
+        # #######################generator and discriminators############## #
+        netG = G_NET(self.opts, self.device)
+        netG.apply(weights_init)
+        netG = netG.to(self.device)
+        file_name = self.model_file_name.format(self.epoch_tracker.epoch)
+        if os.path.exists(file_name):
+            checkpoint = torch.load(file_name)
+            netG.load_state_dict(checkpoint['netG'])
+        return text_encoder, netG

@@ -77,3 +77,12 @@ class SelfAttnGAN(AttnGAN):
                                 betas=self.adam_betas)
 
         return optimizerG, optimizersD
+
+
+class SelfAttnBert(SelfAttnGAN):
+
+    def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
+        super().__init__(device, output_dir, opts, ixtoword, train_loader, val_loader)
+
+    def text_encoder_forward(self, text_encoder, captions, captions_mask):
+        return text_encoder(captions, captions_mask)

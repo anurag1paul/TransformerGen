@@ -1,12 +1,12 @@
-CONFIG_NAME: 'attn2'
+CONFIG_NAME: 'bert_attn'
 
 DATASET_NAME: 'birds'
 DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
-CHECKPOINTS_DIR: selfAttnGAN2
-DAMSM_MODEL: checkpoint-500.pth.tar
+CHECKPOINTS_DIR: bertSelfAttnGAN
+DAMSM_MODEL: bert-200.pth.tar
 
 TREE:
     BASE_SIZE: 64
@@ -14,10 +14,9 @@ TREE:
 
 TRAIN:
     FLAG: True
-    NET_G: ''  # '../models/bird_AttnGAN2.pth'
     B_NET_D: True
     BATCH_SIZE: 18  # 22
-    MAX_EPOCH: 150
+    MAX_EPOCH: 300
     SNAPSHOT_INTERVAL: 5
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002
@@ -39,6 +38,6 @@ GAN:
     R_NUM: 2
 
 TEXT:
-    ENCODER: 'lstm'
+    ENCODER: 'bert'
     EMBEDDING_DIM: 256
     CAPTIONS_PER_IMAGE: 10
