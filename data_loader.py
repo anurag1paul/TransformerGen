@@ -81,6 +81,7 @@ class AbstractTokenizer(ABC):
         length = len(unpadded)
         if length > self.max_caption_size:
             out = unpadded[:self.max_caption_size]
+            length = self.max_caption_size
         else:
             out = [0] * self.max_caption_size
             out[:length] = unpadded

@@ -26,12 +26,10 @@ class InceptionScore:
         self.inception_model = inception_v3(pretrained=True, transform_input=False).type(self.dtype)
         self.inception_model.eval()
 
-        self.up = nn.Upsample(size=(299, 299), mode='bilinear').type(self.dtype)
-
     def get_pred(self, x):
-        x = self.up(x)
+        x = F.interpolate(x, size=(299, 299), mode='bilinear', align_corners=True)
         x = self.inception_model(x)
-        return F.softmax(x).data.cpu().numpy()
+        return nn.softmax(dim=-1)(x).data.cpu().numpy()
 
     def predict(self, fake_imgs, batch_idx):
         """Computes the inception score of the generated images imgs

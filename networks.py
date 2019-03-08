@@ -74,11 +74,12 @@ class BERT_ENCODER(nn.Module):
 
     def forward(self, captions, input_mask):
         batch_size, seq_len = captions.size(0), captions.size(1)
-        all_encoder_layers, _ = self.model(captions, token_type_ids=None, attention_mask=input_mask)
+        all_encoder_layers, pooled_output = self.bert(captions, token_type_ids=None, attention_mask=input_mask)
 
-        words_features = torch.cat(all_encoder_layers[-5:-1].view(-1, 768*4), dim=-1)
+        words_features = torch.cat(all_encoder_layers[-5:-1], dim=-1).view(-1, 768*4)
         words_emb = self.word_enc(words_features).view(batch_size, seq_len, -1)
-        sent_emb = self.sent_enc(all_encoder_layers[-1].view(-1, 768)).view(batch_size, seq_len, -1)
+        words_emb = words_emb.transpose(1, 2)
+        sent_emb = self.sent_enc(pooled_output)
 
         return words_emb, sent_emb
 
@@ -127,7 +128,7 @@ class CNN_ENCODER(nn.Module):
         features = None
         # --> fixed-size input: batch x 3 x 299 x 299
 
-        x = nn.Upsample(size=(299, 299), mode='bilinear')(x)
+        x = F.interpolate(x, size=(299, 299), mode='bilinear', align_corners=True)
         # 299 x 299 x 3
         x = self.Conv2d_1a_3x3(x)
         # 149 x 149 x 32

@@ -5,7 +5,7 @@ DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
-CHECKPOINTS_DIR: selfAttnGAN
+CHECKPOINTS_DIR: selfAttnGAN2
 DAMSM_MODEL: checkpoint-500.pth.tar
 
 TREE:

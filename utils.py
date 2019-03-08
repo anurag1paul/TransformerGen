@@ -10,6 +10,7 @@ import numpy as np
 from torchvision.utils import save_image
 from matplotlib import pyplot as plt
 from torch import nn
+from torch.nn import functional as F
 from PIL import Image, ImageDraw, ImageFont
 import skimage.transform
 
@@ -209,8 +210,7 @@ def build_super_images(real_imgs, captions, ixtoword,
         text_convas[:, istart:iend, :] = COLOR_DIC[i]
 
 
-    real_imgs = \
-        nn.Upsample(size=(vis_size, vis_size), mode='bilinear')(real_imgs)
+    real_imgs = F.interpolate(real_imgs, size=(vis_size, vis_size), mode='bilinear', align_corners=True)
     # [-1, 1] --> [0, 1]
     real_imgs.add_(1).div_(2).mul_(255)
     real_imgs = real_imgs.data.numpy()
@@ -221,7 +221,7 @@ def build_super_images(real_imgs, captions, ixtoword,
     post_pad = np.zeros([pad_sze[1], pad_sze[2], 3])
     if lr_imgs is not None:
         lr_imgs = \
-            nn.Upsample(size=(vis_size, vis_size), mode='bilinear')(lr_imgs)
+            F.interpolate(lr_imgs, size=(vis_size, vis_size), mode='bilinear', align_corners=True)
         # [-1, 1] --> [0, 1]
         lr_imgs.add_(1).div_(2).mul_(255)
         lr_imgs = lr_imgs.data.numpy()
@@ -264,7 +264,7 @@ def build_super_images(real_imgs, captions, ixtoword,
             if (vis_size // att_sze) > 1:
                 one_map = \
                     skimage.transform.pyramid_expand(one_map, sigma=20,
-                                                     upscale=vis_size // att_sze)
+                                                     upscale=vis_size // att_sze, multichannel=True)
             row_beforeNorm.append(one_map)
             minV = one_map.min()
             maxV = one_map.max()
@@ -319,8 +319,7 @@ def build_super_images2(real_imgs, captions, cap_lens, ixtoword,
                            max_word_num * (vis_size + 2), 3],
                            dtype=np.uint8)
 
-    real_imgs = \
-        nn.Upsample(size=(vis_size, vis_size), mode='bilinear')(real_imgs)
+    real_imgs = F.interpolate(real_imgs, size=(vis_size, vis_size), mode='bilinear', align_corners=True)
     # [-1, 1] --> [0, 1]
     real_imgs.add_(1).div_(2).mul_(255)
     real_imgs = real_imgs.data.numpy()
@@ -363,7 +362,7 @@ def build_super_images2(real_imgs, captions, cap_lens, ixtoword,
             if (vis_size // att_sze) > 1:
                 one_map = \
                     skimage.transform.pyramid_expand(one_map, sigma=20,
-                                                     upscale=vis_size // att_sze)
+                                                     upscale=vis_size // att_sze, multichannel=True)
             minV = one_map.min()
             maxV = one_map.max()
             one_map = (one_map - minV) / (maxV - minV)

@@ -42,7 +42,7 @@ class Damsm:
 
         s_epoch_loss = 0
         w_epoch_loss = 0
-        num_batches = len(dataloader) // batch_size
+        num_batches = len(dataloader)
 
         for step, data in enumerate(dataloader, 0):
             print('step', step)
@@ -55,23 +55,23 @@ class Damsm:
 
             words_features, sent_code = image_encoder(imgs[-1])
             # --> batch_size x nef x 17*17
-
-            batch_size, nef, att_size = words_features.size()
+            
+            batch_size, nef, att_size, _ = words_features.shape
             # words_features = words_features.view(batch_size, nef, -1)
 
             words_emb, sent_emb = self.text_enc_forward(text_encoder, captions, input_mask)
             labels = Variable(torch.LongTensor(range(batch_size))).to(self.device)
 
             w_loss0, w_loss1, attn_maps = words_loss(words_features, words_emb, labels, class_ids, batch_size)
-            w_total_loss0 += w_loss0.data
-            w_total_loss1 += w_loss1.data
+            w_total_loss0 += w_loss0.data.item()
+            w_total_loss1 += w_loss1.data.item()
             loss = w_loss0 + w_loss1
             w_epoch_loss += w_loss0.item() + w_loss1.item()
 
             s_loss0, s_loss1 = sent_loss(sent_code, sent_emb, labels, class_ids, batch_size)
             loss += s_loss0 + s_loss1
-            s_total_loss0 += s_loss0.data
-            s_total_loss1 += s_loss1.data
+            s_total_loss0 += s_loss0.data.item()
+            s_total_loss1 += s_loss1.data.item()
             s_epoch_loss += s_loss0.item() + s_loss1.item()
 
             loss.backward(retain_graph=True)
@@ -84,11 +84,11 @@ class Damsm:
             if step != 0 and step % self.update_interval == 0:
                 count = epoch * len(dataloader) + step
 
-                s_cur_loss0 = s_total_loss0.item() / self.update_interval
-                s_cur_loss1 = s_total_loss1.item() / self.update_interval
+                s_cur_loss0 = s_total_loss0 / self.update_interval
+                s_cur_loss1 = s_total_loss1 / self.update_interval
 
-                w_cur_loss0 = w_total_loss0.item() / self.update_interval
-                w_cur_loss1 = w_total_loss1.item() / self.update_interval
+                w_cur_loss0 = w_total_loss0 / self.update_interval
+                w_cur_loss1 = w_total_loss1 / self.update_interval
 
                 elapsed = time.time() - start_time
                 print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '

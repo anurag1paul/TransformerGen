@@ -12,8 +12,8 @@ TREE:
 TRAIN:
     FLAG: True
     NET_E: ''  # '../DAMSMencoders/bird/text_encoder200.pth'
-    BATCH_SIZE: 64
-    MAX_EPOCH: 600
+    BATCH_SIZE: 48
+    MAX_EPOCH: 100
     SNAPSHOT_INTERVAL: 10
     ENCODER_LR: 0.0002  # 0.0002best; 0.002good; scott: 0.0007 with 0.98decay
     RNN_GRAD_CLIP: 0.25
@@ -24,5 +24,5 @@ TRAIN:
 
 TEXT:
     ENCODER: 'bert'
-    EMBEDDING_DIM: 512
+    EMBEDDING_DIM: 256
     CAPTIONS_PER_IMAGE: 10
