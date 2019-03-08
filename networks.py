@@ -51,7 +51,7 @@ class RNN_ENCODER(nn.Module):
 
     def forward(self, captions, hidden):
     
-        emb = self.drop(self.encoder(captions))        
+        emb = self.drop(self.encoder(captions))
         output, hidden = self.rnn(emb, hidden)
         words_emb = output.transpose(1, 2)
         
