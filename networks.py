@@ -1,4 +1,5 @@
 import torch
+from pytorch_pretrained_bert import BertModel
 
 from torch import nn
 from torchvision import models
@@ -19,7 +20,6 @@ def conv3x3(in_planes, out_planes):
 
 
 class RNN_ENCODER(nn.Module):
-
 
     def __init__(self, ntoken, batch_size, ninput=300, drop_prob=0.5,
                  nhidden=128, nlayers=1):
@@ -59,6 +59,28 @@ class RNN_ENCODER(nn.Module):
         sent_emb = sent_emb.view(-1, self.nhidden * self.num_directions)
         
         return words_emb, sent_emb
+
+
+class BERT_ENCODER(nn.Module):
+
+    def __init__(self, nhidden):
+        super(BERT_ENCODER, self).__init__()
+
+        self.enc_size = nhidden  # size of each encoding vector
+        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.bert.eval()
+        self.word_enc = nn.Linear(768*4, self.enc_size)
+        self.sent_enc = nn.Linear(768, self.enc_size)
+
+    def forward(self, captions, input_mask):
+        all_encoder_layers, _ = self.model(captions, token_type_ids=None, attention_mask=input_mask)
+
+        words_features = torch.cat(all_encoder_layers[-5:-1], dim=-1)
+        words_emb = self.word_enc(words_features)
+        sent_emb = self.sent_enc(all_encoder_layers[-1])
+
+        return words_emb, sent_emb
+
 
 class CNN_ENCODER(nn.Module):
     def __init__(self, nef):

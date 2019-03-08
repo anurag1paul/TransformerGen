@@ -199,7 +199,7 @@ class AttnGAN(BaseModel):
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
                 data = next(data_iter)
-                imgs, captions, class_ids = prepare_data(data, self.device)
+                imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
@@ -308,7 +308,7 @@ class AttnGAN(BaseModel):
                 ######################################################
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
-                imgs, captions, class_ids = prepare_data(data, self.device)
+                imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
@@ -331,6 +331,7 @@ class AttnGAN(BaseModel):
                 errG_total += kl_loss
                 total_loss.append(errG_total.data.item())
                 inception_scorer.predict(fake_imgs[-1], step)
+
         netG.train()
         for i in range(len(netsD)):
             netsD[i].train()
@@ -402,12 +403,12 @@ class AttnGAN(BaseModel):
                     # if step > 50:
                     #     break
 
-                    imgs, captions, cap_lens, class_ids, keys = prepare_data(data)
+                    imgs, captions, class_ids, input_mask = prepare_data(data)
 
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len
                     # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
+                    words_embs, sent_emb = text_encoder(captions, hidden)
                     words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                     mask = (captions == 0)
                     num_words = words_embs.size(2)

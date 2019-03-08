@@ -22,16 +22,22 @@ def prepare_data(data, device):
 
     real_imgs = []
     for i in range(len(imgs)):
-        real_imgs.append(Variable(imgs[i]).to(device))
+        real_imgs.append(imgs[i].to(device))
 
     max_len = torch.max(caption_lengths)
     captions = captions[:, :max_len]
     captions = captions.squeeze()
+    captions = captions.to(device)
+
     class_ids = class_ids.numpy()
 
-    captions = Variable(captions).to(device)
+    caption_lengths = caption_lengths.numpy()
+    mask = caption_lengths[:,None] > np.arange(max_len)
+    input_mask = np.zeros(mask.shape)
+    input_mask[mask] = 1
+    input_mask = torch.from_numpy(input_mask).squeeze().to(device)
 
-    return [real_imgs, captions, class_ids]
+    return [real_imgs, captions, class_ids, input_mask]
 
 
 def get_imgs(img_path, imsize, opts, bbox=None,

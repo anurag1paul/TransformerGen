@@ -3,7 +3,7 @@ DATA_DIR: '../data/birds'
 GPU_ID: 0
 WORKERS: 1
 
-CHECKPOINTS_DIR: 'damsm'
+CHECKPOINTS_DIR: 'damsm_bert'
 
 TREE:
     BRANCH_NUM: 1
@@ -23,6 +23,6 @@ TRAIN:
         GAMMA3: 10.0  # 10good 1&100bad
 
 TEXT:
-    ENCODER: 'lstm'
+    ENCODER: 'bert'
     EMBEDDING_DIM: 256
     CAPTIONS_PER_IMAGE: 10
