@@ -2,24 +2,16 @@ import os
 import time
 import datetime
 import dateutil.tz
-from PIL import Image
 
 from easydict import EasyDict
 import torch
-import torch.optim as optim
-from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
 
 from damsm.damsm import Damsm
 from damsm.damsm_bert import DamsmBert
-from data_loader import CubDataset, prepare_data
+from data_loader import CubDataset
 from data_preprocess import DataPreprocessor
-from losses import words_loss, sent_loss
-from damsm.networks import RNN_ENCODER, CNN_ENCODER
-from utils import get_opts, build_super_images, make_dir, save_checkpoint, EpochTracker
-
-# dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))
-# sys.path.append(dir_path)
+from utils import get_opts, make_dir, save_checkpoint, EpochTracker
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -29,7 +21,7 @@ epoch_file = "epoch.txt"
 log_file = "logs.log"
 
 UPDATE_INTERVAL = 5
-opts = EasyDict(get_opts("config/damsm_bird.yaml"))
+opts = EasyDict(get_opts("config/damsm_bert_bird.yaml"))
 
 
 def create_loader(opts):

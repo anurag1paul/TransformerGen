@@ -73,11 +73,12 @@ class BERT_ENCODER(nn.Module):
         self.sent_enc = nn.Linear(768, self.enc_size)
 
     def forward(self, captions, input_mask):
+        batch_size, seq_len = captions.size(0), captions.size(1)
         all_encoder_layers, _ = self.model(captions, token_type_ids=None, attention_mask=input_mask)
 
-        words_features = torch.cat(all_encoder_layers[-5:-1], dim=-1)
-        words_emb = self.word_enc(words_features)
-        sent_emb = self.sent_enc(all_encoder_layers[-1])
+        words_features = torch.cat(all_encoder_layers[-5:-1].view(-1, 768*4), dim=-1)
+        words_emb = self.word_enc(words_features).view(batch_size, seq_len, -1)
+        sent_emb = self.sent_enc(all_encoder_layers[-1].view(-1, 768)).view(batch_size, seq_len, -1)
 
         return words_emb, sent_emb
 
