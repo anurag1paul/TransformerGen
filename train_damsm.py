@@ -9,7 +9,7 @@ import torch.backends.cudnn as cudnn
 
 from damsm.damsm import Damsm
 from damsm.damsm_bert import DamsmBert
-from data_loader import CubDataset
+from data_loader import CubDataset, DefaultCaptionTokenizer, BertCaptionTokenizer
 from data_preprocess import DataPreprocessor
 from utils import get_opts, make_dir, save_checkpoint, EpochTracker
 
@@ -21,14 +21,21 @@ epoch_file = "epoch.txt"
 log_file = "logs.log"
 
 UPDATE_INTERVAL = 5
+MAX_CAPTION_SIZE = 30
 opts = EasyDict(get_opts("config/damsm_bert_bird.yaml"))
 
 
 def create_loader(opts):
     preprocessor = DataPreprocessor("cub", data_dir)
-    ixtoword = preprocessor.get_idx_to_word()
-    train_set = CubDataset(preprocessor, opts, mode='train')
-    val_set = CubDataset(preprocessor, opts, mode='val')
+    if opts.TEXT.ENCODER != 'bert':
+        ixtoword = preprocessor.get_idx_to_word()
+        tokenizer = DefaultCaptionTokenizer(preprocessor.get_word_to_idx(), MAX_CAPTION_SIZE)
+    else:
+        tokenizer = BertCaptionTokenizer(MAX_CAPTION_SIZE)
+        ixtoword = tokenizer.tokenizer.ids_to_tokens
+
+    train_set = CubDataset(preprocessor, opts, tokenizer, mode='train')
+    val_set = CubDataset(preprocessor, opts, tokenizer, mode='val')
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=False, pin_memory=True)
     return train_loader, val_loader, ixtoword

@@ -129,17 +129,13 @@ class BertCaptionTokenizer(AbstractTokenizer):
 
 class CubDataset(Dataset):
 
-    def __init__(self, preprocessor: DataPreprocessor, opts, tokenizer=None, mode="train"):
+    def __init__(self, preprocessor: DataPreprocessor, opts, tokenizer, mode="train"):
         super(CubDataset, self).__init__()
         self.preprocessor = preprocessor
         self.mode = mode
         self.max_caption_size = 30
         self.opts = opts
-
-        if tokenizer is None:
-            self.tokenizer = DefaultCaptionTokenizer(self.preprocessor.get_word_to_idx(), self.max_caption_size)
-        else:
-            self.tokenizer = tokenizer
+        self.tokenizer = tokenizer
 
         if mode == "train":
             self.img_file_names = self.preprocessor.get_train_files()
