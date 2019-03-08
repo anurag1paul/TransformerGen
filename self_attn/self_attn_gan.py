@@ -11,6 +11,7 @@ class SelfAttnGAN(AttnGAN):
 
     def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
         super(SelfAttnGAN, self).__init__(device, output_dir, opts, ixtoword, train_loader, val_loader)
+        self.use_lr_scheduler = True
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -67,7 +68,7 @@ class SelfAttnGAN(AttnGAN):
         optimizersD = []
         num_Ds = len(netsD)
         for i in range(num_Ds):
-            opt = torch.optim.SGD(netsD[i].parameters(),
+            opt = torch.optim.Adam(netsD[i].parameters(),
                                    lr=self.opts.TRAIN.DISCRIMINATOR_LR)
             optimizersD.append(opt)
 

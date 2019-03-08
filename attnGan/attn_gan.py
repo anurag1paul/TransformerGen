@@ -6,6 +6,7 @@ from PIL import Image
 from torch.autograd import Variable
 
 from torch.backends import cudnn
+from torch.optim.lr_scheduler import LambdaLR
 
 from base_model import BaseModel
 from data_loader import prepare_data
@@ -42,6 +43,7 @@ class AttnGAN(BaseModel):
         self.val_logger = None
         self.losses_logger = None
         self.adam_betas = (self.opts.TRAIN.ADAM_BETA1, self.opts.TRAIN.ADAM_BETA2)
+        self.use_lr_scheduler = False
 
     def build_models(self):
         # ###################encoders######################################## #
@@ -185,12 +187,23 @@ class AttnGAN(BaseModel):
         noise, fixed_noise = noise.to(self.device), fixed_noise.to(self.device)
 
         gen_iterations = 0
+
+        lr_schedulers = []
+        if self.use_lr_scheduler:
+            for i in range(len(optimizersD)):
+                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.99**epoch, last_epoch=start_epoch-1)
+                lr_schedulers.append(lr_scheduler)
+
         # gen_iterations = start_epoch * self.num_batches
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
 
             data_iter = iter(self.train_loader)
             step = 0
+
+            for i in range(len(lr_schedulers)):
+                lr_schedulers[i].step()
+
             while step < self.num_batches:
                 # reset requires_grad to be trainable for all Ds
                 # self.set_requires_grad_value(netsD, True)
@@ -257,7 +270,7 @@ class AttnGAN(BaseModel):
                 if gen_iterations % 10 == 0:
                     print("Epoch: "+ str(epoch) + " Step: " + str(step) + " " + D_logs + '\n' + G_logs)
                 # save images
-                if gen_iterations % 100 == 0:
+                if gen_iterations % 300 == 0:
                     backup_para = copy_G_params(netG)
                     load_params(netG, avg_param_G)
                     self.save_img_results(netG, fixed_noise, sent_emb,
