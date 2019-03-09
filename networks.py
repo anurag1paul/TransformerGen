@@ -74,26 +74,22 @@ class BERT_ENCODER(nn.Module):
 
         self.word_enc = nn.Sequential(nn.Linear(768*4, 768*2),
                                        nn.Linear(768*2, self.enc_size))
-        self.conv1d = nn.Conv1d(in_channels=30, out_channels=1, kernel_size=1)
-        self.sent_enc = nn.Sequential(nn.Linear(768, 768//2), nn.Linear(768//2, self.enc_size))
+        self.sent_enc = nn.Conv1d(in_channels=30, out_channels=1, kernel_size=1)
 
         initrange = 0.1
         for m in self.word_enc:
             nn.init.orthogonal_(m.weight.data, 1.0)
         self.conv1d.weight.data.uniform_(-initrange, initrange)
-        for m in self.sent_enc:
-            nn.init.orthogonal_(m.weight.data, 1.0)
 
     def forward(self, captions, input_mask):
         batch_size, seq_len = captions.size(0), captions.size(1)
         all_encoder_layers, _ = self.bert(captions, token_type_ids=None, attention_mask=input_mask)
 
         words_features = torch.cat(all_encoder_layers[-5:-1], dim=-1).view(-1, 768*4)
-        words_emb = self.word_enc(words_features).view(batch_size, seq_len, -1)
-        words_emb = words_emb.transpose(1, 2)
+        words_emb_out = self.word_enc(words_features).view(batch_size, seq_len, -1)
+        words_emb = words_emb_out.transpose(1, 2)
 
-        conv_out = self.conv1d(all_encoder_layers[-1]).squeeze()
-        sent_emb = self.sent_enc(conv_out)
+        sent_emb = self.sent_enc(words_emb_out).squeeze()
 
         return words_emb, sent_emb
 
