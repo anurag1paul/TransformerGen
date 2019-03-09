@@ -115,3 +115,4 @@ dataset/
 logs.out
 nohup.out
 text_c10/
+flickr_dataset/

@@ -212,24 +212,25 @@ class FlickrDataPreprocessor:
     def prepare_data(self):
 
         all_captions =[]
-        for cap in self.img_caption.values():
-            if len(cap) == 0:
-                continue
-            cap = cap.replace(u"\ufffd\ufffd", u" ")
+        for cap_list in self.img_caption.values():
+            for cap in cap_list:
+                if len(cap) == 0:
+                    continue
+                cap = cap.replace(u"\ufffd\ufffd", u" ")
 
-            tokenizer = RegexpTokenizer(r'\w+')
-            tokens = tokenizer.tokenize(cap.lower())
+                tokenizer = RegexpTokenizer(r'\w+')
+                tokens = tokenizer.tokenize(cap.lower())
 
-            if len(tokens) == 0:
-                print('cap', cap)
-                continue
+                if len(tokens) == 0:
+                    print('cap', cap)
+                    continue
 
-            tokens_new = []
-            for t in tokens:
-                t = t.encode('ascii', 'ignore').decode('ascii')
-                if len(t) > 0:
-                    tokens_new.append(t)
-            all_captions.extend(tokens_new)
+                tokens_new = []
+                for t in tokens:
+                    t = t.encode('ascii', 'ignore').decode('ascii')
+                    if len(t) > 0:
+                        tokens_new.append(t)
+                all_captions.extend(tokens_new)
 
         vocab = np.unique(all_captions)
 

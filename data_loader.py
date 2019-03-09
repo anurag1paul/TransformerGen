@@ -232,8 +232,9 @@ class FlickrDataset(Dataset):
         return len(self.img_file_names)
 
     def __getitem__(self, idx):
-        image_name = os.path.join(self.preprocessor.data_path, self.img_file_names[idx])
-        image = get_imgs(image_name, self.imsize, self.opts)
+        image_name = self.img_file_names[idx]
+        image_path = os.path.join(self.preprocessor.data_path, image_name)
+        image = get_imgs(image_path, self.imsize, self.opts)
 
         # select a random sentence
         cap_idx = np.random.choice(np.arange(len(self.img_captions_dict[image_name])))
