@@ -9,13 +9,12 @@ import torch.backends.cudnn as cudnn
 
 from damsm.damsm import Damsm
 from damsm.damsm_bert import DamsmBert
-from data_loader import CubDataset, DefaultCaptionTokenizer, BertCaptionTokenizer
-from data_preprocess import CubDataPreprocessor
+from data_loader import CubDataset, DefaultCaptionTokenizer, BertCaptionTokenizer, FlickrDataset
+from data_preprocess import get_preprocessor
 from utils import get_opts, make_dir, save_checkpoint, EpochTracker
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-data_dir = 'dataset/'
 output_directory = "checkpoints"
 epoch_file = "epoch.txt"
 log_file = "logs.log"
@@ -26,7 +25,8 @@ opts = EasyDict(get_opts("config/damsm_bert_bird.yaml"))
 
 
 def create_loader(opts):
-    preprocessor = CubDataPreprocessor("cub", data_dir)
+    preprocessor = get_preprocessor(opts.DATASET_NAME, opts.DATA_DIR)
+
     if opts.TEXT.ENCODER != 'bert':
         ixtoword = preprocessor.get_idx_to_word()
         tokenizer = DefaultCaptionTokenizer(preprocessor.get_word_to_idx(), MAX_CAPTION_SIZE)
@@ -34,8 +34,13 @@ def create_loader(opts):
         tokenizer = BertCaptionTokenizer(MAX_CAPTION_SIZE)
         ixtoword = tokenizer.tokenizer.ids_to_tokens
 
-    train_set = CubDataset(preprocessor, opts, tokenizer, mode='train')
-    val_set = CubDataset(preprocessor, opts, tokenizer, mode='val')
+    if opts.DATASET_NAME == "cub":
+        train_set = CubDataset(preprocessor, opts, tokenizer, mode='train')
+        val_set = CubDataset(preprocessor, opts, tokenizer, mode='val')
+    else:
+        train_set = FlickrDataset(preprocessor, opts, tokenizer, mode='train')
+        val_set = FlickrDataset(preprocessor, opts, tokenizer, mode='val')
+
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=True, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=opts.TRAIN.BATCH_SIZE, shuffle=False, pin_memory=True)
     return train_loader, val_loader, ixtoword

@@ -202,10 +202,11 @@ class CubDataset(Dataset):
 
         return image, caption, class_id, caption_length
 
-class FlikerDataset(Dataset):
+
+class FlickrDataset(Dataset):
 
     def __init__(self, preprocessor: FlickrDataPreprocessor, opts, tokenizer, mode="train"):
-        super(FlikerDataset, self).__init__()
+        super(FlickrDataset, self).__init__()
         self.preprocessor = preprocessor
         self.mode = mode
         self.max_caption_size = 30

@@ -1,9 +1,9 @@
-DATASET_NAME: 'cub'
-DATA_DIR: 'dataset/'
+DATASET_NAME: 'flickr'
+DATA_DIR: 'flickr_dataset/'
 GPU_ID: 0
 WORKERS: 1
 
-CHECKPOINTS_DIR: 'damsm_bert'
+CHECKPOINTS_DIR: 'flickr_damsm_bert'
 
 TREE:
     BRANCH_NUM: 1
@@ -11,7 +11,6 @@ TREE:
 
 TRAIN:
     FLAG: True
-    NET_E: ''  # '../DAMSMencoders/bird/text_encoder200.pth'
     BATCH_SIZE: 64
     MAX_EPOCH: 200
     SNAPSHOT_INTERVAL: 5
@@ -25,4 +24,4 @@ TRAIN:
 TEXT:
     ENCODER: 'bert'
     EMBEDDING_DIM: 256
-    CAPTIONS_PER_IMAGE: 10
+    CAPTIONS_PER_IMAGE: 5

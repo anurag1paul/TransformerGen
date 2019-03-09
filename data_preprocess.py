@@ -8,6 +8,13 @@ from nltk.tokenize import RegexpTokenizer
 from sklearn.model_selection import train_test_split
 
 
+def get_preprocessor(dataset_name, data_dir):
+    if dataset_name == "cub":
+        return CubDataPreprocessor(dataset_name, data_dir)
+    else:
+        return FlickrDataPreprocessor(dataset_name, data_dir)
+
+
 class CubDataPreprocessor:
 
     def __init__(self, dataset_name, data_dir):
