@@ -29,7 +29,7 @@ class InceptionScore:
     def get_pred(self, x):
         x = F.interpolate(x, size=(299, 299), mode='bilinear', align_corners=True)
         x = self.inception_model(x)
-        return nn.softmax(dim=-1)(x).data.cpu().numpy()
+        return nn.Softmax(dim=-1)(x).data.cpu().numpy()
 
     def predict(self, fake_imgs, batch_idx):
         """Computes the inception score of the generated images imgs

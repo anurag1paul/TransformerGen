@@ -174,7 +174,7 @@ class AttnGAN(BaseModel):
             im.save(fullpath)
 
     def text_encoder_forward(self, text_encoder, captions, captions_mask):
-        batch_size = text_encoder.size(0)
+        batch_size = captions.size(0)
         hidden = text_encoder.init_hidden(batch_size)
         # words_embs: batch_size x nef x seq_len
         # sent_emb: batch_size x nef
@@ -199,7 +199,9 @@ class AttnGAN(BaseModel):
         lr_schedulers = []
         if self.use_lr_scheduler:
             for i in range(len(optimizersD)):
-                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.99**epoch, last_epoch=start_epoch-1)
+                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.99**epoch)
+                for m in range(start_epoch):
+                   lr_scheduler.step()
                 lr_schedulers.append(lr_scheduler)
 
         # gen_iterations = start_epoch * self.num_batches
