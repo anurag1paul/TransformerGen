@@ -21,10 +21,11 @@ log_file = "logs.log"
 
 UPDATE_INTERVAL = 5
 MAX_CAPTION_SIZE = 30
-opts = EasyDict(get_opts("config/damsm_bert_bird.yaml"))
+opts = EasyDict(get_opts("config/damsm_bert_flickr.yaml"))
 
 
 def create_loader(opts):
+    print("Dataset: ", opts.DATASET_NAME)
     preprocessor = get_preprocessor(opts.DATASET_NAME, opts.DATA_DIR)
 
     if opts.TEXT.ENCODER != 'bert':
