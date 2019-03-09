@@ -74,7 +74,7 @@ class BERT_ENCODER(nn.Module):
                                        nn.Linear(768*2, 768),
                                        nn.Linear(768, self.enc_size))
         self.conv1d = nn.Conv1d(in_channels=30, out_channels=1, kernel_size=1)
-        self.sent_enc = nn.Linear(768, self.enc_size)
+        self.sent_enc = nn.Sequential(nn.Linear(768, 768//2) , nn.Linear(768//2, self.enc_size))
 
     def forward(self, captions, input_mask):
         batch_size, seq_len = captions.size(0), captions.size(1)
