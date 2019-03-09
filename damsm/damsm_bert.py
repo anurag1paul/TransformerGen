@@ -8,6 +8,7 @@ class DamsmBert(Damsm):
 
     def __init__(self, opts, update_interval, device):
         super().__init__(opts, update_interval, device)
+        print("Bert Model")	
 
     def build_models(self, dict_size, batch_size, model_file_name):
         # build model ############################################################

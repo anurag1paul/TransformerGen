@@ -108,3 +108,10 @@ venv.bak/
 
 *.ipynb
 *.pth.tar
+
+CUB_200_2011/
+checkpoints/
+dataset/
+logs.out
+nohup.out
+text_c10/

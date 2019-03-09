@@ -71,7 +71,7 @@ class BERT_ENCODER(nn.Module):
         for param in self.bert.parameters():
             param.requires_grad = False
         self.word_enc = nn.Sequential(nn.Linear(768*4, 768*2),
-                                       nn.Linear(768*4, 768),
+                                       nn.Linear(768*2, 768),
                                        nn.Linear(768, self.enc_size))
         self.conv1d = nn.Conv1d(in_channels=30, out_channels=1, kernel_size=1)
         self.sent_enc = nn.Linear(768, self.enc_size)

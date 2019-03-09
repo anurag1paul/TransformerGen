@@ -24,7 +24,7 @@ def prepare_data(data, device):
     for i in range(len(imgs)):
         real_imgs.append(imgs[i].to(device))
 
-    max_len = torch.max(caption_lengths)
+    max_len = 30
     # captions = captions[:, :max_len]
     captions = captions.squeeze()
     captions = captions.to(device)
@@ -120,6 +120,7 @@ class BertCaptionTokenizer(AbstractTokenizer):
     def __init__(self, max_caption_size):
         super().__init__(max_caption_size)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+        print("Using Bert tokenizer")
 
     def tokenize(self, caption):
         unpadded = self.tokenizer.tokenize(caption)
