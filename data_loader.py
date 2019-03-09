@@ -25,7 +25,7 @@ def prepare_data(data, device):
         real_imgs.append(imgs[i].to(device))
 
     max_len = torch.max(caption_lengths)
-    captions = captions[:, :max_len]
+    # captions = captions[:, :max_len]
     captions = captions.squeeze()
     captions = captions.to(device)
 
