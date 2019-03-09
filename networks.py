@@ -78,9 +78,11 @@ class BERT_ENCODER(nn.Module):
         self.sent_enc = nn.Sequential(nn.Linear(768, 768//2), nn.Linear(768//2, self.enc_size))
 
         initrange = 0.1
-        self.word_enc.weight.data.uniform_(-initrange, initrange)
+        for m in self.word_enc:
+            nn.init.orthogonal_(m.weight.data, 1.0)
         self.conv1d.weight.data.uniform_(-initrange, initrange)
-        self.sent_enc.weight.data.uniform_(-initrange, initrange)
+        for m in self.sent_enc:
+            nn.init.orthogonal_(m.weight.data, 1.0)
 
     def forward(self, captions, input_mask):
         batch_size, seq_len = captions.size(0), captions.size(1)
