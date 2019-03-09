@@ -1,0 +1,43 @@
+CONFIG_NAME: 'bert_attn'
+
+DATASET_NAME: 'birds'
+DATA_DIR: 'dataset/'
+GPU_ID: 0
+WORKERS: 4
+
+CHECKPOINTS_DIR: bertSelfAttnGAN
+DAMSM_MODEL: bert-200.pth.tar
+
+TREE:
+    BASE_SIZE: 64
+    BRANCH_NUM: 3
+
+TRAIN:
+    FLAG: True
+    B_NET_D: True
+    BATCH_SIZE: 18  # 22
+    MAX_EPOCH: 300
+    SNAPSHOT_INTERVAL: 5
+    DISCRIMINATOR_LR: 0.0002
+    GENERATOR_LR: 0.0002
+    ADAM_BETA1 : 0.5
+    ADAM_BETA2: 0.999
+    #
+    NET_E: '../DAMSMencoders/bird/text_encoder200.pth'
+    SMOOTH:
+        GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
+        GAMMA2: 5.0
+        GAMMA3: 10.0  # 10good 1&100bad
+        LAMBDA: 5.0
+
+GAN:
+    CONDITION_DIM: 100
+    DF_DIM: 64
+    GF_DIM: 32
+    Z_DIM: 100
+    R_NUM: 2
+
+TEXT:
+    ENCODER: 'bert'
+    EMBEDDING_DIM: 256
+    CAPTIONS_PER_IMAGE: 10
