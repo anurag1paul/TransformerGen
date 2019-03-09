@@ -10,7 +10,7 @@ import torch.backends.cudnn as cudnn
 from damsm.damsm import Damsm
 from damsm.damsm_bert import DamsmBert
 from data_loader import CubDataset, DefaultCaptionTokenizer, BertCaptionTokenizer
-from data_preprocess import DataPreprocessor
+from data_preprocess import CubDataPreprocessor
 from utils import get_opts, make_dir, save_checkpoint, EpochTracker
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -26,7 +26,7 @@ opts = EasyDict(get_opts("config/damsm_bert_bird.yaml"))
 
 
 def create_loader(opts):
-    preprocessor = DataPreprocessor("cub", data_dir)
+    preprocessor = CubDataPreprocessor("cub", data_dir)
     if opts.TEXT.ENCODER != 'bert':
         ixtoword = preprocessor.get_idx_to_word()
         tokenizer = DefaultCaptionTokenizer(preprocessor.get_word_to_idx(), MAX_CAPTION_SIZE)

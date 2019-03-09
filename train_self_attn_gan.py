@@ -5,7 +5,7 @@ import torch
 from easydict import EasyDict
 
 from data_loader import CubDataset, DefaultCaptionTokenizer, BertCaptionTokenizer
-from data_preprocess import DataPreprocessor
+from data_preprocess import CubDataPreprocessor
 from self_attn.self_attn_gan import SelfAttnGAN, SelfAttnBert
 from utils import get_opts
 
@@ -21,7 +21,7 @@ data_dir = 'dataset/'
 epoch_file = "epoch.txt"
 log_file = "logs.log"
 
-preprocessor = DataPreprocessor("cub", data_dir)
+preprocessor = CubDataPreprocessor("cub", data_dir)
 
 if opts.TEXT.ENCODER == "lstm":
     ixtoword = preprocessor.get_idx_to_word()

@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 
-from data_preprocess import DataPreprocessor
+from data_preprocess import CubDataPreprocessor, FlickrDataPreprocessor
 
 
 def prepare_data(data, device):
@@ -130,7 +130,7 @@ class BertCaptionTokenizer(AbstractTokenizer):
 
 class CubDataset(Dataset):
 
-    def __init__(self, preprocessor: DataPreprocessor, opts, tokenizer, mode="train"):
+    def __init__(self, preprocessor: CubDataPreprocessor, opts, tokenizer, mode="train"):
         super(CubDataset, self).__init__()
         self.preprocessor = preprocessor
         self.mode = mode
@@ -198,6 +198,46 @@ class CubDataset(Dataset):
         cap_idx = np.random.choice(np.arange(len(self.img_captions[idx])))
         caption, caption_length = self.tokenizer.get_padded_tensor(self.img_captions[idx][cap_idx])
         class_id = numpy.array(self.filename_class[self.img_file_names[idx]])
+        caption_length = numpy.array(caption_length)
+
+        return image, caption, class_id, caption_length
+
+class FlikerDataset(Dataset):
+
+    def __init__(self, preprocessor: FlickrDataPreprocessor, opts, tokenizer, mode="train"):
+        super(FlikerDataset, self).__init__()
+        self.preprocessor = preprocessor
+        self.mode = mode
+        self.max_caption_size = 30
+        self.opts = opts
+        self.tokenizer = tokenizer
+
+        if mode == "train":
+            self.img_file_names = self.preprocessor.get_train_files()
+        elif mode == "val":
+            self.img_file_names = self.preprocessor.get_val_files()
+        else:
+            self.img_file_names = self.preprocessor.get_test_files()
+
+        self.img_captions_dict = preprocessor.get_img_caption_files()
+
+        self.imsize = []
+        base_size = opts.TREE.BASE_SIZE
+        for i in range(opts.TREE.BRANCH_NUM):
+            self.imsize.append(base_size)
+            base_size = base_size * 2
+
+    def __len__(self):
+        return len(self.img_file_names)
+
+    def __getitem__(self, idx):
+        image_name = os.path.join(self.preprocessor.data_path, self.img_file_names[idx])
+        image = get_imgs(image_name, self.imsize, self.opts)
+
+        # select a random sentence
+        cap_idx = np.random.choice(np.arange(len(self.img_captions_dict[image_name])))
+        caption, caption_length = self.tokenizer.get_padded_tensor(self.img_captions_dict[image_name][cap_idx])
+        class_id = numpy.array(idx)
         caption_length = numpy.array(caption_length)
 
         return image, caption, class_id, caption_length
