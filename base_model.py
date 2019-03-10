@@ -26,10 +26,9 @@ class BaseModel(ABC):
     def train(self):
         pass
 
-    def test(self):
-        with torch.no_grad():
-            self.forward()
-            self.evaluate()
+    @abstractmethod
+    def test(self, model_path, test_loader):
+        pass
 
     @staticmethod
     def set_requires_grad(nets, requires_grad=False):
