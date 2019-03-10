@@ -1,27 +1,43 @@
+CONFIG_NAME: 'bert_attn'
+
 DATASET_NAME: 'flickr'
 DATA_DIR: 'flickr_dataset/'
 GPU_ID: 0
-WORKERS: 1
+WORKERS: 4
 
-CHECKPOINTS_DIR: 'flickr_damsm_bert'
+CHECKPOINTS_DIR: flickrBertSelfAttnGAN
+DAMSM_MODEL: flickr_bert_60.pth.tar
 
 TREE:
-    BRANCH_NUM: 1
-    BASE_SIZE: 256
+    BASE_SIZE: 64
+    BRANCH_NUM: 3
 
 TRAIN:
     FLAG: True
-    BATCH_SIZE: 64
-    MAX_EPOCH: 200
-    SNAPSHOT_INTERVAL: 5
-    ENCODER_LR: 0.0002  # 0.0002best; 0.002good; scott: 0.0007 with 0.98decay
-    RNN_GRAD_CLIP: 0.25
+    B_NET_D: True
+    BATCH_SIZE: 18  # 22
+    MAX_EPOCH: 300
+    SNAPSHOT_INTERVAL: 1
+    DISCRIMINATOR_LR: 0.0002
+    GENERATOR_LR: 0.0002
+    ADAM_BETA1 : 0.5
+    ADAM_BETA2: 0.999
+    #
+    NET_E: '../DAMSMencoders/bird/text_encoder200.pth'
     SMOOTH:
         GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
         GAMMA2: 5.0
         GAMMA3: 10.0  # 10good 1&100bad
+        LAMBDA: 50.0
+
+GAN:
+    CONDITION_DIM: 100
+    DF_DIM: 64
+    GF_DIM: 32
+    Z_DIM: 100
+    R_NUM: 2
 
 TEXT:
     ENCODER: 'bert'
     EMBEDDING_DIM: 256
-    CAPTIONS_PER_IMAGE: 5
+    CAPTIONS_PER_IMAGE: 10
