@@ -199,7 +199,7 @@ class AttnGAN(BaseModel):
         lr_schedulers = []
         if self.use_lr_scheduler:
             for i in range(len(optimizersD)):
-                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.99**epoch)
+                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.998**epoch)
                 for m in range(start_epoch):
                    lr_scheduler.step()
                 lr_schedulers.append(lr_scheduler)

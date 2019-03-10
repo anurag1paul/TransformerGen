@@ -19,6 +19,7 @@ class SelfAttnGAN(AttnGAN):
 
         text_encoder = checkpoint['text_encoder'].to(self.device)
         image_encoder = checkpoint['image_encoder'].to(self.device)
+        print("Loaded Encoders from:", self.pretrained_path)
         # clear memory
         del checkpoint
 
@@ -49,13 +50,13 @@ class SelfAttnGAN(AttnGAN):
         file_name = self.model_file_name.format(self.epoch_tracker.epoch)
         if os.path.exists(file_name):
             checkpoint = torch.load(file_name)
-
+            print("Loaded from checkpoint: ", file_name)
             netG.load_state_dict(checkpoint['netG'])
             epoch = checkpoint['epoch'] + 1
             for i in range(len(netsD)):
                 key = "netsD_{}".format(i)
                 netsD[i].load_state_dict(checkpoint[key])
-
+            del checkpoint
             self.val_logger = open(os.path.join(self.output_dir, 'val_ic_log.txt'), 'a')
             self.losses_logger = open(os.path.join(self.output_dir, 'losses_log.txt'), 'a')
         else:

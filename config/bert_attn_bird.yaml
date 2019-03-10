@@ -6,7 +6,7 @@ GPU_ID: 0
 WORKERS: 4
 
 CHECKPOINTS_DIR: bertSelfAttnGAN
-DAMSM_MODEL: bert-200.pth.tar
+DAMSM_MODEL: bert-130.pth.tar
 
 TREE:
     BASE_SIZE: 64
@@ -15,7 +15,7 @@ TREE:
 TRAIN:
     FLAG: True
     B_NET_D: True
-    BATCH_SIZE: 18  # 22
+    BATCH_SIZE: 20  # 22
     MAX_EPOCH: 300
     SNAPSHOT_INTERVAL: 5
     DISCRIMINATOR_LR: 0.0002
