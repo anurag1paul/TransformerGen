@@ -304,10 +304,10 @@ class D_GET_LOGITS(nn.Module):
         self.bcondition = bcondition
         if self.bcondition:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + nef, ndf * 8)
+        self.mini_batch_disc = MinibatchDiscrimination(ndf*2, ndf, 16)
+        self.down = SpectralNorm(nn.Conv2d(ndf * 8, ndf*2, kernel_size=4, stride=4))
 
-        self.outlogits = nn.Sequential(
-            SpectralNorm(nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4)),
-            nn.Sigmoid())
+        self.out_logits = nn.Sequential(nn.Conv1d(ndf*3, 1, 1), nn.Sigmoid())
 
     def forward(self, h_code, c_code=None):
         if self.bcondition and c_code is not None:
@@ -321,7 +321,9 @@ class D_GET_LOGITS(nn.Module):
         else:
             h_c_code = h_code
 
-        output = self.outlogits(h_c_code)
+        output = self.down(h_c_code).squeeze()
+        output = self.mini_batch_disc(output).unsqueeze(2)
+        output = self.out_logits(output)
         return output.view(-1)
 
 
@@ -396,3 +398,29 @@ class D_NET256(nn.Module):
         x_code4 = self.img_code_s64_1(x_code4)
         x_code4 = self.img_code_s64_2(x_code4)
         return x_code4
+
+
+class MinibatchDiscrimination(nn.Module):
+    def __init__(self, in_features, out_features, kernel_dims):
+        super(MinibatchDiscrimination, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.kernel_dims = kernel_dims
+        self.T = nn.Parameter(torch.Tensor(in_features, out_features, kernel_dims))
+        nn.init.normal_(self.T, 0, 1)
+
+    def forward(self, x):
+        # x is batchxA
+        # T is AxBxC
+        matrices = x.mm(self.T.view(self.in_features, -1))
+        matrices = matrices.view(-1, self.out_features, self.kernel_dims)
+
+        M = matrices.unsqueeze(0)
+
+        M_T = M.permute(1, 0, 2, 3)
+        norm = torch.abs(M - M_T).sum(3)
+        expnorm = torch.exp(-norm)
+        out = (expnorm.sum(0) - 1)
+
+        x = torch.cat([x, out], 1)
+        return x

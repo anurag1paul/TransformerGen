@@ -11,7 +11,7 @@ class SelfAttnGAN(AttnGAN):
 
     def __init__(self, device, output_dir, opts, ixtoword, train_loader, val_loader):
         super(SelfAttnGAN, self).__init__(device, output_dir, opts, ixtoword, train_loader, val_loader)
-        self.use_lr_scheduler = True
+        self.use_lr_scheduler = False
 
     def build_models(self):
         # ###################encoders######################################## #

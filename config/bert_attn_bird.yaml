@@ -5,7 +5,7 @@ DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
-CHECKPOINTS_DIR: bertSelfAttnGAN
+CHECKPOINTS_DIR: bertSelfAttnGAN2
 DAMSM_MODEL: bert-130.pth.tar
 
 TREE:
