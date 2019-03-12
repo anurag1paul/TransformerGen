@@ -80,7 +80,8 @@ class BERT_ENCODER(nn.Module):
 
         initrange = 0.1
         for m in self.word_enc:
-            nn.init.orthogonal_(m.weight.data, 1.0)
+            if isinstance(m, nn.Linear):
+                nn.init.orthogonal_(m.weight.data, 1.0)
         self.sent_enc.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, captions, input_mask):
