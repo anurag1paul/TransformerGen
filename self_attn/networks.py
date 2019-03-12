@@ -115,8 +115,9 @@ class INIT_STAGE_G(nn.Module):
 
         self.upsample1 = upBlock(ngf, ngf // 2)
         self.upsample2 = upBlock(ngf // 2, ngf // 4)
+        self.self_attn1 = Self_Attn(ngf // 4)
         self.upsample3 = upBlock(ngf // 4, ngf // 8)
-        self.self_attn = Self_Attn(ngf // 8)
+        self.self_attn2 = Self_Attn(ngf // 8)
         self.upsample4 = upBlock(ngf // 8, ngf // 16)
 
     def forward(self, z_code, c_code):
@@ -133,9 +134,10 @@ class INIT_STAGE_G(nn.Module):
         out_code = self.upsample1(out_code)
         # state size ngf/4 x 16 x 16
         out_code = self.upsample2(out_code)
+        out_code = self.self_attn1(out_code)
         # state size ngf/8 x 32 x 32
         out_code32 = self.upsample3(out_code)
-        out_code32 = self.self_attn(out_code32)
+        out_code32 = self.self_attn2(out_code32)
         # state size ngf/16 x 64 x 64
         out_code64 = self.upsample4(out_code32)
 
@@ -306,8 +308,8 @@ class D_GET_LOGITS(nn.Module):
             self.jointConv = Block3x3_leakRelu(ndf * 8 + nef, ndf * 8)
 
         self.outlogits = nn.Sequential(
-            SpectralNorm(nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4)),
-            nn.Sigmoid())
+            SpectralNorm(nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4)))
+            # nn.Sigmoid())
 
     def forward(self, h_code, c_code=None):
         if self.bcondition and c_code is not None:

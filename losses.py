@@ -196,8 +196,10 @@ def discriminator_loss(netD, real_imgs, fake_imgs, conditions,
     if netD.UNCOND_DNET is not None:
         real_logits = netD.UNCOND_DNET(real_features)
         fake_logits = netD.UNCOND_DNET(fake_features)
-        real_errD = nn.BCELoss()(real_logits, real_labels)
-        fake_errD = nn.BCELoss()(fake_logits, fake_labels)
+        # real_errD = nn.BCELoss()(real_logits, real_labels)
+        # fake_errD = nn.BCELoss()(fake_logits, fake_labels)
+        real_errD = torch.nn.ReLU()(1.0 - real_logits).mean()
+        fake_errD = torch.nn.ReLU()(1.0 + fake_logits).mean()
         errD = ((real_errD + cond_real_errD) / 2. +
                 (fake_errD + cond_fake_errD + cond_wrong_errD) / 3.)
     else:
@@ -218,7 +220,8 @@ def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
         cond_errG = nn.BCELoss()(cond_logits, real_labels)
         if netsD[i].UNCOND_DNET is  not None:
             logits = netsD[i].UNCOND_DNET(features)
-            errG = nn.BCELoss()(logits, real_labels)
+            # errG = nn.BCELoss()(logits, real_labels)
+            errG = - logits.mean()
             g_loss = errG + cond_errG
         else:
             g_loss = cond_errG
