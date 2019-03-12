@@ -73,7 +73,9 @@ class BERT_ENCODER(nn.Module):
             param.requires_grad = False
 
         self.word_enc = nn.Sequential(nn.Linear(768*4, 768*2),
-                                       nn.Linear(768*2, self.enc_size))
+                                      nn.Linear(768*2, 768),
+                                      nn.Dropout(0.5),
+                                      nn.Linear(768, self.enc_size))
         self.sent_enc = nn.Conv1d(in_channels=30, out_channels=1, kernel_size=1)
 
         initrange = 0.1
