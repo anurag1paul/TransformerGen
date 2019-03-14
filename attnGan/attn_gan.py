@@ -454,12 +454,24 @@ class AttnGAN(BaseModel):
                 ######################################################
                 noise.data.normal_(0, 1)
                 fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
+                
                 for j in range(batch_size):
-                    s_tmp = '%s/single/%s' % (save_dir, keys[j])
+                    cap = captions[j].data.cpu().numpy()
+                    name = "%d_%d" % (step, j)
+                    s_tmp = '%s/single/%s' % (save_dir, name)
                     folder = s_tmp[:s_tmp.rfind('/')]
                     if not os.path.isdir(folder):
                         print('Make a new folder: ', folder)
                         make_dir(folder)
+                    sentence = []
+                    for m in range(len(cap)):
+                        if cap[m] == 0:
+                            break
+                        word = self.ixtoword[cap[m]].encode('ascii', 'ignore').decode('ascii')
+                        sentence.append(word)
+                        sentence.append(' ')
+                        
+                    print(name, ''.join(sentence))
                     k = -1
                     # for k in range(len(fake_imgs)):
                     im = fake_imgs[k][j].data.cpu().numpy()

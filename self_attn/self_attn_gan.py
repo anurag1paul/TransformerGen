@@ -78,6 +78,27 @@ class SelfAttnGAN(AttnGAN):
                                 betas=self.adam_betas)
 
         return optimizerG, optimizersD
+    
+    def build_models_for_test(self, model_path):
+        # ###################encoders######################################## #
+        checkpoint = torch.load(self.pretrained_path)
+        text_encoder = checkpoint['text_encoder'].to(self.device)
+        # clear memory
+        del checkpoint
+        self.set_requires_grad([text_encoder])
+        text_encoder.eval()
+        # #######################generator and discriminators############## #
+        netG = G_NET(self.opts, self.device)
+        netG.apply(weights_init)
+        netG = netG.to(self.device)
+        if os.path.exists(model_path):
+            checkpoint = torch.load(model_path)
+            netG.load_state_dict(checkpoint['netG'])
+        else:
+            print("Model Not found")
+            exit()
+        netG.eval()
+        return text_encoder, netG
 
 
 class SelfAttnBert(SelfAttnGAN):
