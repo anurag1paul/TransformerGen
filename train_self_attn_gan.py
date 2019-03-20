@@ -14,10 +14,10 @@ torch.set_default_tensor_type(torch.cuda.FloatTensor)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 MAX_CAPTION_SIZE = 30
 
-opts = EasyDict(get_opts("config/bert_attn_bird.yaml"))
+opts = EasyDict(get_opts("config/bert_attn_flickr.yaml"))
 
 output_dir = os.path.join("checkpoints/", opts.CHECKPOINTS_DIR)
-data_dir = 'dataset/'
+data_dir = opts.DATA_DIR
 epoch_file = "epoch.txt"
 log_file = "logs.log"
 
