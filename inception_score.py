@@ -17,12 +17,12 @@ class InceptionScore:
         self.splits = splits
 
         self.preds = np.zeros((self.total_imgs, 1000))
-        
-	# Set up dtype
+
+        # Set up dtype
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
 
-	# Load inception model
+        # Load inception model
         self.inception_model = inception_v3(pretrained=True, transform_input=False).type(self.dtype)
         self.inception_model.eval()
 

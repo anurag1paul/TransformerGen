@@ -199,7 +199,8 @@ class AttnGAN(BaseModel):
         lr_schedulers = []
         if self.use_lr_scheduler:
             for i in range(len(optimizersD)):
-                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.99**epoch)
+                lr_scheduler = LambdaLR(optimizersD[i], lr_lambda=lambda epoch:0.998**epoch)
+
                 for m in range(start_epoch):
                    lr_scheduler.step()
                 lr_schedulers.append(lr_scheduler)
@@ -356,6 +357,45 @@ class AttnGAN(BaseModel):
         m, s = inception_scorer.get_ic_score()
         return m, s, sum(total_loss) / val_batches
 
+    def test(self, model_path, test_loader):
+        batch_size = self.batch_size
+        nz = self.opts.GAN.Z_DIM
+        real_labels, fake_labels, match_labels = self.prepare_labels()
+
+        noise = Variable(torch.FloatTensor(batch_size, nz))
+        fixed_noise = Variable(torch.FloatTensor(batch_size, nz).normal_(0, 1))
+
+        noise, fixed_noise = noise.to(self.device), fixed_noise.to(self.device)
+
+        text_encoder, netG = self.build_models_for_test(model_path)
+        val_batches = len(test_loader)
+
+        inception_scorer = InceptionScore(val_batches, batch_size, val_batches)
+        total_loss = []
+        with torch.no_grad():
+            for step, data in enumerate(test_loader):
+                ######################################################
+                # (1) Prepare training data and Compute text embeddings
+                ######################################################
+                imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
+
+                words_embs, sent_emb = self.text_encoder_forward(text_encoder, captions, input_mask)
+                words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                mask = (captions == 0)
+                num_words = words_embs.size(2)
+                if mask.size(1) > num_words:
+                    mask = mask[:, :num_words]
+
+                #######################################################
+                # (2) Generate fake images
+                ######################################################
+                noise.data.normal_(0, 1)
+                fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask)
+                inception_scorer.predict(fake_imgs[-1], step)
+
+        m, s = inception_scorer.get_ic_score()
+        return m, s, sum(total_loss) / val_batches
+
     def save_singleimages(self, images, filenames, save_dir,
                           split_dir, sentenceID=0):
         for i in range(images.size(0)):
@@ -375,12 +415,9 @@ class AttnGAN(BaseModel):
             im = Image.fromarray(ndarr)
             im.save(fullpath)
 
-    def sampling(self, split_dir):
+    def sampling(self, split_dir, model_path):
 
-        if split_dir == 'test':
-            split_dir = 'valid'
-        # Build and load the generator
-        text_encoder, netG = self.build_models_for_test()
+        text_encoder, netG = self.build_models_for_test(model_path)
 
         batch_size = self.batch_size
         nz = self.opts.GAN.Z_DIM
@@ -401,7 +438,7 @@ class AttnGAN(BaseModel):
                 if step > 50:
                     break
 
-                imgs, captions, class_ids, input_mask = prepare_data(data)
+                imgs, captions, class_ids, input_mask = prepare_data(data, self.device)
 
                 words_embs, sent_emb = self.text_encoder_forward(text_encoder, captions, input_mask)
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
@@ -415,12 +452,26 @@ class AttnGAN(BaseModel):
                 ######################################################
                 noise.data.normal_(0, 1)
                 fake_imgs, _, _, _ = netG(noise, sent_emb, words_embs, mask)
+                
                 for j in range(batch_size):
-                    s_tmp = '%s/single/%s' % (save_dir, keys[j])
+                    cap = captions[j].data.cpu().numpy()
+                    name = "%d_%d" % (step, j)
+                    s_tmp = '%s/single/%s' % (save_dir, name)
                     folder = s_tmp[:s_tmp.rfind('/')]
                     if not os.path.isdir(folder):
                         print('Make a new folder: ', folder)
                         make_dir(folder)
+
+                    sentence = []
+                    for m in range(len(cap)):
+                        if cap[m] == 0:
+                            break
+                        word = self.ixtoword[cap[m]].encode('ascii', 'ignore').decode('ascii')
+                        sentence.append(word)
+                        sentence.append(' ')
+                        
+                    print(name, ''.join(sentence))
+
                     k = -1
                     # for k in range(len(fake_imgs)):
                     im = fake_imgs[k][j].data.cpu().numpy()
@@ -432,7 +483,7 @@ class AttnGAN(BaseModel):
                     fullpath = '%s_s%d.png' % (s_tmp, k)
                     im.save(fullpath)
 
-    def build_models_for_test(self):
+    def build_models_for_test(self, model_path):
         # ###################encoders######################################## #
         checkpoint = torch.load(self.pretrained_path)
         text_encoder = checkpoint['text_encoder'].to(self.device)
@@ -444,8 +495,18 @@ class AttnGAN(BaseModel):
         netG = G_NET(self.opts, self.device)
         netG.apply(weights_init)
         netG = netG.to(self.device)
+
         file_name = self.model_file_name.format(self.epoch_tracker.epoch)
         if os.path.exists(file_name):
             checkpoint = torch.load(file_name)
             netG.load_state_dict(checkpoint['netG'])
+
+        if os.path.exists(model_path):
+            checkpoint = torch.load(model_path)
+            netG.load_state_dict(checkpoint['netG'])
+        else:
+            print("Model Not found")
+            exit()
+        netG.eval()
+
         return text_encoder, netG

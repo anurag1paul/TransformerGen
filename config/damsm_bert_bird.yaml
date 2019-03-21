@@ -1,5 +1,6 @@
-DATASET_NAME: 'birds'
-DATA_DIR: '../data/birds'
+DATASET_NAME: 'cub'
+DATA_DIR: 'dataset/'
+
 GPU_ID: 0
 WORKERS: 1
 

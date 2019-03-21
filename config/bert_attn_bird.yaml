@@ -1,12 +1,12 @@
 CONFIG_NAME: 'bert_attn'
 
-DATASET_NAME: 'birds'
+DATASET_NAME: 'cub'
 DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4
 
-CHECKPOINTS_DIR: bertSelfAttnGAN
-DAMSM_MODEL: bert-200.pth.tar
+CHECKPOINTS_DIR: bertSelfAttnGAN2
+DAMSM_MODEL: bert-130.pth.tar
 
 TREE:
     BASE_SIZE: 64
@@ -15,8 +15,8 @@ TREE:
 TRAIN:
     FLAG: True
     B_NET_D: True
-    BATCH_SIZE: 18  # 22
-    MAX_EPOCH: 300
+    BATCH_SIZE: 20  # 22
+    MAX_EPOCH: 500
     SNAPSHOT_INTERVAL: 5
     DISCRIMINATOR_LR: 0.0002
     GENERATOR_LR: 0.0002

@@ -4,7 +4,8 @@ from easydict import EasyDict
 
 from attnGan.attn_gan import AttnGAN
 from data_loader import CubDataset, DefaultCaptionTokenizer
-from data_preprocess import DataPreprocessor
+
+from data_preprocess import CubDataPreprocessor, get_preprocessor
 from utils import get_opts
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -17,7 +18,7 @@ log_file = "logs.log"
 opts = EasyDict(get_opts("config/bird.yaml"))
 MAX_CAPTION_SIZE = 30
 
-preprocessor = DataPreprocessor("cub", data_dir)
+preprocessor = get_preprocessor(opts.DATABASE_NAME, opts.DATA_DIR)
 ixtoword = preprocessor.get_idx_to_word()
 tokenizer = DefaultCaptionTokenizer(preprocessor.get_word_to_idx(), MAX_CAPTION_SIZE)
 train_set = CubDataset(preprocessor, opts, tokenizer, mode='train')
