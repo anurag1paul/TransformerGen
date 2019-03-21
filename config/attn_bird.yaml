@@ -1,6 +1,6 @@
 CONFIG_NAME: 'attn2'
 
-DATASET_NAME: 'birds'
+DATASET_NAME: 'cub'
 DATA_DIR: 'dataset/'
 GPU_ID: 0
 WORKERS: 4

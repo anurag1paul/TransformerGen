@@ -18,7 +18,7 @@ log_file = "logs.log"
 opts = EasyDict(get_opts("config/bird.yaml"))
 MAX_CAPTION_SIZE = 30
 
-preprocessor = get_preprocessor(opts.DATABASE_NAME, opts.DATA_DIR)
+preprocessor = get_preprocessor(opts.DATASET_NAME, opts.DATA_DIR)
 ixtoword = preprocessor.get_idx_to_word()
 tokenizer = DefaultCaptionTokenizer(preprocessor.get_word_to_idx(), MAX_CAPTION_SIZE)
 train_set = CubDataset(preprocessor, opts, tokenizer, mode='train')
