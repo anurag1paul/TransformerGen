@@ -34,7 +34,7 @@ nbformat==4.4.0
 networkx==2.2
 nltk==3.4.5
 notebook==5.7.4
-numpy==1.16.1
+numpy==1.22.0
 pandas==0.24.1
 pandocfilters==1.4.2
 parso==0.3.2
